@@ -1,0 +1,6 @@
+{
+  "name": "Haat Bazar - হাট বাজার",
+  "description": "Advanced Multi-Page E-Commerce Marketplace - দেশীয় পণ্য গ্রহণ করুন, নিজের স্বাস্থ্য ও পরিবারকে সুস্থ রাখুন।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
