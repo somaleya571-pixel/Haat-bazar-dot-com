@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128;
+    }
+
+    // Default deny rule
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Centralized Settings (Hotline, Contact, Announcement, Banners)
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if true;
+      allow write: if isValidId(settingId);
+    }
+
+    // Products Catalog (Public catalog for all browsers and in-app webviews)
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow write: if isValidId(productId);
+    }
+
+    // Orders (Customer orders and admin fulfillment)
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId);
+      allow list: if true;
+      allow write: if isValidId(orderId);
+    }
+
+    // Couriers
+    match /couriers/{courierId} {
+      allow get: if isValidId(courierId);
+      allow list: if true;
+      allow write: if isValidId(courierId);
+    }
+  }
+}

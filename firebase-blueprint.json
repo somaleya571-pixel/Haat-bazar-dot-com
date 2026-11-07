@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Marketplace product item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "nameBn": { "type": "string" },
+        "category": { "type": "string" },
+        "categoryBn": { "type": "string" },
+        "regularPrice": { "type": "number" },
+        "discountPercentage": { "type": "number" },
+        "stock": { "type": "number" },
+        "image": { "type": "string" },
+        "description": { "type": "string" },
+        "descriptionBn": { "type": "string" },
+        "unit": { "type": "string" },
+        "isFlashSale": { "type": "boolean" },
+        "isPopular": { "type": "boolean" },
+        "isRecommended": { "type": "boolean" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "nameBn", "regularPrice", "stock"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Centralized marketplace settings including hotline, banner, and delivery",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "hotline": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "gmail": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "supportHours": { "type": "string" },
+        "officeAddress": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "heroBannerUrl": { "type": "string" },
+        "announcementText": { "type": "string" },
+        "announcementActive": { "type": "boolean" },
+        "freeDeliveryThreshold": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "hotline"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "deliveryAddress": { "type": "string" },
+        "subtotal": { "type": "number" },
+        "deliveryCharge": { "type": "number" },
+        "discount": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "customerName", "customerPhone", "total", "status"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Collection of all e-commerce products"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/Setting" },
+      "description": "Centralized settings document for hotline, banners, and contacts"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Purchased orders placed by customers"
+    }
+  }
+}

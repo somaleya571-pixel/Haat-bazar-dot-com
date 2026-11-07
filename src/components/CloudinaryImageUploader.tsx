@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Sparkles
 } from 'lucide-react';
+import { safeStorage } from '../utils/safeStorage';
 
 interface CloudinaryImageUploaderProps {
   currentImageUrl?: string;
@@ -34,10 +35,10 @@ export const CloudinaryImageUploader: React.FC<CloudinaryImageUploaderProps> = (
 }) => {
   // Cloudinary credentials (customizable by user or defaulted)
   const [cloudName, setCloudName] = useState(() => {
-    return localStorage.getItem(STORAGE_KEY_CLOUD_NAME) || 'haatbazar-media';
+    return safeStorage.getItem(STORAGE_KEY_CLOUD_NAME) || 'haatbazar-media';
   });
   const [uploadPreset, setUploadPreset] = useState(() => {
-    return localStorage.getItem(STORAGE_KEY_UPLOAD_PRESET) || 'haatbazar_unsigned';
+    return safeStorage.getItem(STORAGE_KEY_UPLOAD_PRESET) || 'haatbazar_unsigned';
   });
 
   const [previewUrl, setPreviewUrl] = useState<string>(currentImageUrl || '');
@@ -52,8 +53,8 @@ export const CloudinaryImageUploader: React.FC<CloudinaryImageUploaderProps> = (
   const saveCloudinaryConfig = (newCloud: string, newPreset: string) => {
     setCloudName(newCloud);
     setUploadPreset(newPreset);
-    localStorage.setItem(STORAGE_KEY_CLOUD_NAME, newCloud);
-    localStorage.setItem(STORAGE_KEY_UPLOAD_PRESET, newPreset);
+    safeStorage.setItem(STORAGE_KEY_CLOUD_NAME, newCloud);
+    safeStorage.setItem(STORAGE_KEY_UPLOAD_PRESET, newPreset);
     setStatusMessage('ক্লাউডিনারি কনফিগারেশন সংরক্ষিত হয়েছে!');
     setTimeout(() => setStatusMessage(null), 3000);
     setIsConfigOpen(false);

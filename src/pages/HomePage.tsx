@@ -16,7 +16,7 @@ import { ProductCard } from '../components/ProductCard';
 import { INITIAL_CATEGORIES } from '../data/mockData';
 
 export const HomePage: React.FC = () => {
-  const { products, navigateTo, language, setSelectedCategoryFilter } = useShop();
+  const { products, navigateTo, language, setSelectedCategoryFilter, websiteSettings } = useShop();
 
   // Flash sale countdown timer simulation (hours, minutes, seconds)
   const [timeLeft, setTimeLeft] = useState({ hours: 14, minutes: 32, seconds: 45 });
@@ -56,7 +56,7 @@ export const HomePage: React.FC = () => {
           title="হাট বাজার - পণ্য দেখুন"
         >
           <img
-            src="/assets/haat_bazar_banner.png"
+            src={websiteSettings?.heroBannerUrl || '/assets/haat_bazar_banner.png'}
             alt="হাট বাজার ডট কম - Haat Bazar.com"
             className="w-full h-auto object-cover block transition-transform duration-300 hover:scale-[1.01]"
             loading="eager"

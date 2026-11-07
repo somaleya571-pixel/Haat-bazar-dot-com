@@ -324,7 +324,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     stock: 75,
     rating: 4.7,
     reviewCount: 52,
-    image: 'https://images.unsplash.com/photo-1536511135899-73e481b7e096?auto=format&fit=crop&w=600&q=80',
+    image: 'https://images.unsplash.com/photo-1535914254981-b5012eebbd15?auto=format&fit=crop&w=600&q=80',
     unit: '১ কেজি',
     isFlashSale: true,
     isPopular: false,

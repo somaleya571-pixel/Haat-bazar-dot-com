@@ -15,7 +15,7 @@ import { ORDER_TRACKING_STAGES, ORDER_TRACKING_STAGES_BN } from '../utils/order'
 import { formatCurrency } from '../utils/pricing';
 
 export const OrderTrackingPage: React.FC = () => {
-  const { orders, pageParams, navigateTo, language } = useShop();
+  const { orders, pageParams, navigateTo, language, officialContact } = useShop();
 
   const [searchId, setSearchId] = useState<string>(pageParams.orderId || orders[0]?.id || '');
   const activeOrder = orders.find((o) => o.id === searchId) || orders[0];
@@ -56,11 +56,11 @@ export const OrderTrackingPage: React.FC = () => {
         </div>
 
         <a
-          href="tel:+8801700123456"
+          href={`tel:${officialContact.hotline.replace(/\s+/g, '')}`}
           className="text-xs font-bold text-white bg-[#007A3D] px-3.5 py-2 rounded-xl hover:bg-[#006030] shadow-xs transition-colors flex items-center gap-1.5"
         >
           <PhoneCall className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">রাইডার সহায়তা</span>
+          <span className="hidden sm:inline">রাইডার সহায়তা ({officialContact.hotline})</span>
         </a>
       </div>
 

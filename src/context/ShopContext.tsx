@@ -53,6 +53,16 @@ import {
   isSessionActiveAndValid,
   MASTER_ADMIN_PASSWORD,
 } from '../utils/session';
+import {
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  deleteDoc,
+} from 'firebase/firestore';
+import { db, OperationType, handleFirestoreError } from '../lib/firebase';
+import { safeStorage } from '../utils/safeStorage';
+
 
 export const DEFAULT_OFFICIAL_CONTACT: OfficialContactInfo = {
   hotline: '+880 1700-123456',
@@ -220,12 +230,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Theme
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('hb_theme');
+    const saved = safeStorage.getItem('hb_theme');
     return saved === 'dark' ? 'dark' : 'light';
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_theme', theme);
+    safeStorage.setItem('hb_theme', theme);
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
       document.body.classList.add('dark');
@@ -254,13 +264,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Customer Auth
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    const saved = localStorage.getItem('hb_logged_in');
+    const saved = safeStorage.getItem('hb_logged_in');
     return saved !== null ? saved === 'true' : true;
   });
 
   const login = (phoneOrEmail?: string) => {
     setIsLoggedIn(true);
-    localStorage.setItem('hb_logged_in', 'true');
+    safeStorage.setItem('hb_logged_in', 'true');
     if (phoneOrEmail) {
       setCustomer((prev) => ({
         ...prev,
@@ -273,13 +283,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setIsLoggedIn(false);
-    localStorage.setItem('hb_logged_in', 'false');
+    safeStorage.setItem('hb_logged_in', 'false');
     showToast(language === 'bn' ? 'আপনি সফলভাবে লগআউট করেছেন।' : 'You have logged out.');
   };
 
   // Admin Single-Session Authentication & Enforcement
   const [ownerSession, setOwnerSession] = useState<OwnerActiveSession | null>(() => {
-    const saved = localStorage.getItem(OWNER_SESSION_STORAGE_KEY);
+    const saved = safeStorage.getItem(OWNER_SESSION_STORAGE_KEY);
     if (!saved) return null;
     try {
       return JSON.parse(saved);
@@ -291,7 +301,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [sessionConflictReason, setSessionConflictReason] = useState<string | null>(null);
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
-    const saved = localStorage.getItem(OWNER_SESSION_STORAGE_KEY);
+    const saved = safeStorage.getItem(OWNER_SESSION_STORAGE_KEY);
     return Boolean(saved);
   });
 
@@ -355,7 +365,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const heartbeatInterval = setInterval(() => {
       setOwnerSession((currentLocalSession) => {
         if (!currentLocalSession) return null;
-        const currentRaw = localStorage.getItem(OWNER_SESSION_STORAGE_KEY);
+        const currentRaw = safeStorage.getItem(OWNER_SESSION_STORAGE_KEY);
         const currentStored: OwnerActiveSession | null = currentRaw ? JSON.parse(currentRaw) : null;
         const check = checkSessionConflict(currentLocalSession.sessionId, currentStored);
         if (check.isConflict) {
@@ -388,8 +398,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newSession = createOwnerSession(email, role, verified.name, userAgent);
 
     // Overwrite storage key with the sole active session
-    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify(newSession));
-    localStorage.setItem('hb_admin_logged_in', 'true');
+    safeStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify(newSession));
+    safeStorage.setItem('hb_admin_logged_in', 'true');
 
     setOwnerSession(newSession);
     setIsAdminLoggedIn(true);
@@ -437,8 +447,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logoutAdmin = () => {
     setIsAdminLoggedIn(false);
     setOwnerSession(null);
-    localStorage.removeItem(OWNER_SESSION_STORAGE_KEY);
-    localStorage.setItem('hb_admin_logged_in', 'false');
+    safeStorage.removeItem(OWNER_SESSION_STORAGE_KEY);
+    safeStorage.setItem('hb_admin_logged_in', 'false');
     logActivity('Admin Logout', 'Security', 'সুপার অ্যাডমিন সেশন সমাপ্ত হয়েছে');
     showToast('অ্যাডমিন সেশন সমাপ্ত হয়েছে।');
     if (typeof window !== 'undefined') {
@@ -452,7 +462,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const validateOwnerSession = (): boolean => {
-    const raw = localStorage.getItem(OWNER_SESSION_STORAGE_KEY);
+    const raw = safeStorage.getItem(OWNER_SESSION_STORAGE_KEY);
     if (!raw || !ownerSession) return false;
     try {
       const stored: OwnerActiveSession = JSON.parse(raw);
@@ -470,7 +480,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       'Secondary Login (Device B)',
       'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile'
     );
-    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify(foreignSession));
+    safeStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify(foreignSession));
 
     try {
       if (typeof BroadcastChannel !== 'undefined') {
@@ -494,12 +504,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Admin Profile
   const [adminProfile, setAdminProfile] = useState<AdminProfile>(() => {
-    const saved = localStorage.getItem('hb_admin_profile');
-    return saved ? JSON.parse(saved) : INITIAL_ADMIN_PROFILE;
+    return safeStorage.getJSON('hb_admin_profile', INITIAL_ADMIN_PROFILE);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_admin_profile', JSON.stringify(adminProfile));
+    safeStorage.setJSON('hb_admin_profile', adminProfile);
   }, [adminProfile]);
 
   const updateAdminProfile = (updated: Partial<AdminProfile>) => {
@@ -508,52 +517,107 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast('অ্যাডমিন প্রোফাইল সফলভাবে সংরক্ষিত হয়েছে');
   };
 
-  // Products
+  // Products: Centralized Firestore Database Synchronization
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('hb_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    return safeStorage.getJSON('hb_products', INITIAL_PRODUCTS);
   });
 
+  // Listen to Firestore products collection in real time
   useEffect(() => {
-    localStorage.setItem('hb_products', JSON.stringify(products));
+    const productsColRef = collection(db, 'products');
+    const unsubscribe = onSnapshot(
+      productsColRef,
+      (snapshot) => {
+        if (snapshot.empty) {
+          // Initial seeding to cloud database so all browsers get the centralized catalog
+          INITIAL_PRODUCTS.forEach((p) => {
+            setDoc(doc(db, 'products', p.id), p).catch(() => {});
+          });
+          setProducts(INITIAL_PRODUCTS);
+          safeStorage.setJSON('hb_products', INITIAL_PRODUCTS);
+        } else {
+          const loaded: Product[] = [];
+          snapshot.forEach((snapDoc) => {
+            loaded.push(snapDoc.data() as Product);
+          });
+          setProducts(loaded);
+          safeStorage.setJSON('hb_products', loaded);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'products');
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    safeStorage.setJSON('hb_products', products);
   }, [products]);
 
   const updateProduct = (updated: Product) => {
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    safeStorage.setJSON('hb_products', products.map((p) => (p.id === updated.id ? updated : p)));
+
+    // Synchronize to Firestore
+    setDoc(doc(db, 'products', updated.id), {
+      ...updated,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true }).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, `products/${updated.id}`);
+    });
+
     logActivity('Product Updated', 'Products', `Updated product: ${updated.nameBn} (৳${updated.regularPrice})`, updated.id);
-    showToast(language === 'bn' ? 'পণ্য সফলভাবে আপডেট করা হয়েছে' : 'Product updated successfully');
+    showToast(language === 'bn' ? 'পণ্য সফলভাবে আপডেট ও ডাটাবেজে সিঙ্ক হয়েছে' : 'Product updated and synced');
   };
 
   const addProduct = (product: Product) => {
     setProducts((prev) => [product, ...prev]);
+    safeStorage.setJSON('hb_products', [product, ...products]);
+
+    // Synchronize to Firestore
+    setDoc(doc(db, 'products', product.id), {
+      ...product,
+      updatedAt: new Date().toISOString(),
+    }).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, `products/${product.id}`);
+    });
+
     logActivity('Product Added', 'Products', `Created new product: ${product.nameBn}`, product.id);
-    showToast(language === 'bn' ? 'নতুন পণ্য তালিকাভুক্ত হয়েছে' : 'New product listed');
+    showToast(language === 'bn' ? 'নতুন পণ্য তালিকাভুক্ত ও ডাটাবেজে সিঙ্ক হয়েছে' : 'New product listed and synced');
   };
 
   const deleteProduct = (productId: string) => {
     const prod = products.find((p) => p.id === productId);
     setProducts((prev) => prev.filter((p) => p.id !== productId));
+    safeStorage.setJSON('hb_products', products.filter((p) => p.id !== productId));
+
+    // Delete from Firestore
+    deleteDoc(doc(db, 'products', productId)).catch((err) => {
+      handleFirestoreError(err, OperationType.DELETE, `products/${productId}`);
+    });
+
     logActivity('Product Deleted', 'Products', `Deleted product: ${prod?.nameBn || productId}`, productId);
-    showToast('পণ্য তালিকা থেকে অপসারণ করা হয়েছে');
+    showToast('পণ্য তালিকা থেকে অপসারণ ও সিঙ্ক করা হয়েছে');
   };
 
   // Couriers
   const [couriers, setCouriers] = useState<CourierService[]>(() => {
-    const saved = localStorage.getItem('hb_couriers');
-    return saved ? JSON.parse(saved) : INITIAL_COURIERS;
+    return safeStorage.getJSON('hb_couriers', INITIAL_COURIERS);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_couriers', JSON.stringify(couriers));
+    safeStorage.setJSON('hb_couriers', couriers);
   }, [couriers]);
 
   const [selectedCourierId, setSelectedCourierId] = useState<string>(() => {
-    const saved = localStorage.getItem('hb_selected_courier');
+    const saved = safeStorage.getItem('hb_selected_courier');
     return saved || 'redx';
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_selected_courier', selectedCourierId);
+    safeStorage.setItem('hb_selected_courier', selectedCourierId);
   }, [selectedCourierId]);
 
   const updateCourier = (updated: CourierService) => {
@@ -585,12 +649,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sellers
   const [sellers, setSellers] = useState<Seller[]>(() => {
-    const saved = localStorage.getItem('hb_sellers');
-    return saved ? JSON.parse(saved) : INITIAL_SELLERS;
+    return safeStorage.getJSON('hb_sellers', INITIAL_SELLERS);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_sellers', JSON.stringify(sellers));
+    safeStorage.setJSON('hb_sellers', sellers);
   }, [sellers]);
 
   const addSeller = (seller: Seller) => {
@@ -613,12 +676,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Coupons
   const [coupons, setCoupons] = useState<Coupon[]>(() => {
-    const saved = localStorage.getItem('hb_coupons');
-    return saved ? JSON.parse(saved) : INITIAL_COUPONS;
+    return safeStorage.getJSON('hb_coupons', INITIAL_COUPONS);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_coupons', JSON.stringify(coupons));
+    safeStorage.setJSON('hb_coupons', coupons);
   }, [coupons]);
 
   const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
@@ -665,12 +727,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Support Tickets
   const [tickets, setTickets] = useState<SupportTicket[]>(() => {
-    const saved = localStorage.getItem('hb_tickets');
-    return saved ? JSON.parse(saved) : INITIAL_SUPPORT_TICKETS;
+    return safeStorage.getJSON('hb_tickets', INITIAL_SUPPORT_TICKETS);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_tickets', JSON.stringify(tickets));
+    safeStorage.setJSON('hb_tickets', tickets);
   }, [tickets]);
 
   const createTicket = (ticketData: Omit<SupportTicket, 'id' | 'createdAt' | 'updatedAt' | 'replies'>) => {
@@ -743,12 +804,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Activity Logs
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
-    const saved = localStorage.getItem('hb_activity_logs');
-    return saved ? JSON.parse(saved) : INITIAL_ACTIVITY_LOGS;
+    return safeStorage.getJSON('hb_activity_logs', INITIAL_ACTIVITY_LOGS);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_activity_logs', JSON.stringify(activityLogs));
+    safeStorage.setJSON('hb_activity_logs', activityLogs);
   }, [activityLogs]);
 
   const logActivity = (action: string, module: string, details: string, recordId?: string) => {
@@ -775,44 +835,192 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Payment Settings
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(() => {
-    const saved = localStorage.getItem('hb_payment_settings');
-    return saved ? JSON.parse(saved) : INITIAL_PAYMENT_SETTINGS;
+    return safeStorage.getJSON('hb_payment_settings', INITIAL_PAYMENT_SETTINGS);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_payment_settings', JSON.stringify(paymentSettings));
+    safeStorage.setJSON('hb_payment_settings', paymentSettings);
   }, [paymentSettings]);
 
   const updatePaymentSettings = (updated: Partial<PaymentSettings>) => {
-    setPaymentSettings((prev) => ({ ...prev, ...updated }));
+    const merged = { ...paymentSettings, ...updated };
+    setPaymentSettings(merged);
+    safeStorage.setJSON('hb_payment_settings', merged);
+
+    setDoc(doc(db, 'settings', 'general'), {
+      paymentSettings: merged,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true }).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, 'settings/general');
+    });
+
     logActivity('Payment Settings Updated', 'Settings', 'Modified bKash, Nagad or COD parameters');
-    showToast('পেমেন্ট ও সিওডি সেটিংস সফলভাবে সংরক্ষিত হয়েছে');
+    showToast('পেমেন্ট ও সিওডি সেটিংস সফলভাবে সংরক্ষিত ও সিঙ্ক হয়েছে');
   };
 
   // Website Settings
   const [websiteSettings, setWebsiteSettings] = useState<WebsiteSettings>(() => {
-    const saved = localStorage.getItem('hb_website_settings');
-    return saved ? JSON.parse(saved) : INITIAL_WEBSITE_SETTINGS;
+    return safeStorage.getJSON('hb_website_settings', INITIAL_WEBSITE_SETTINGS);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_website_settings', JSON.stringify(websiteSettings));
+    safeStorage.setJSON('hb_website_settings', websiteSettings);
   }, [websiteSettings]);
 
   const updateWebsiteSettings = (updated: Partial<WebsiteSettings>) => {
-    setWebsiteSettings((prev) => ({ ...prev, ...updated }));
+    const merged = { ...websiteSettings, ...updated };
+    setWebsiteSettings(merged);
+    safeStorage.setJSON('hb_website_settings', merged);
+
+    // Sync to centralized Firestore settings document
+    setDoc(doc(db, 'settings', 'general'), {
+      websiteSettings: merged,
+      logoUrl: merged.logoUrl,
+      heroBannerUrl: merged.heroBannerUrl,
+      announcementText: merged.announcementText,
+      announcementActive: merged.announcementActive,
+      freeDeliveryThreshold: merged.freeDeliveryThreshold,
+      footerNotice: merged.footerNotice,
+      termsContent: merged.termsContent,
+      privacyContent: merged.privacyContent,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true }).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, 'settings/general');
+    });
+
     logActivity('Website Settings Updated', 'Website', 'Updated banner, announcement or policy settings');
     showToast('ওয়েবসাইট সেটিংস সফলভাবে হালনাগাদ ও সিঙ্ক হয়েছে');
   };
 
-  // Customer List
-  const [customersList, setCustomersList] = useState<CustomerInfo[]>(() => {
-    const saved = localStorage.getItem('hb_customers_list');
-    return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS_LIST;
+  // Official Contact Info
+  const [officialContact, setOfficialContact] = useState<OfficialContactInfo>(() => {
+    return safeStorage.getJSON('hb_official_contact', DEFAULT_OFFICIAL_CONTACT);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_customers_list', JSON.stringify(customersList));
+    safeStorage.setJSON('hb_official_contact', officialContact);
+  }, [officialContact]);
+
+  const updateOfficialContact = (updated: Partial<OfficialContactInfo>) => {
+    const merged = { ...officialContact, ...updated };
+    setOfficialContact(merged);
+    safeStorage.setJSON('hb_official_contact', merged);
+
+    // Sync to centralized Firestore settings document
+    setDoc(doc(db, 'settings', 'general'), {
+      officialContact: merged,
+      hotline: merged.hotline,
+      phone: merged.phone,
+      email: merged.email,
+      gmail: merged.gmail,
+      whatsapp: merged.whatsapp,
+      supportHours: merged.supportHours,
+      officeAddress: merged.officeAddress,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true }).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, 'settings/general');
+    });
+
+    logActivity('Contact Information Updated', 'Settings', `Updated hotline to ${updated.hotline || officialContact.hotline}`);
+    showToast(language === 'bn' ? 'অফিশিয়াল যোগাযোগ তথ্য সফলভাবে হালনাগাদ ও ডাটাবেজে সিঙ্ক হয়েছে' : 'Official contact info synced');
+  };
+
+  // Real-Time Centralized Settings Synchronization across ALL browsers
+  useEffect(() => {
+    const settingsDocRef = doc(db, 'settings', 'general');
+    const unsubscribe = onSnapshot(
+      settingsDocRef,
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data) {
+            // Synchronize Contact info
+            if (data.officialContact || data.hotline) {
+              const incomingContact: Partial<OfficialContactInfo> = {
+                ...(data.officialContact || {}),
+                ...(data.hotline ? { hotline: data.hotline } : {}),
+                ...(data.phone ? { phone: data.phone } : {}),
+                ...(data.email ? { email: data.email } : {}),
+                ...(data.gmail ? { gmail: data.gmail } : {}),
+                ...(data.whatsapp ? { whatsapp: data.whatsapp } : {}),
+                ...(data.supportHours ? { supportHours: data.supportHours } : {}),
+                ...(data.officeAddress ? { officeAddress: data.officeAddress } : {}),
+              };
+              setOfficialContact((prev) => {
+                const updated = { ...prev, ...incomingContact };
+                safeStorage.setJSON('hb_official_contact', updated);
+                return updated;
+              });
+            }
+
+            // Synchronize Website settings
+            if (data.websiteSettings || data.logoUrl || data.heroBannerUrl) {
+              const incomingSettings: Partial<WebsiteSettings> = {
+                ...(data.websiteSettings || {}),
+                ...(data.logoUrl ? { logoUrl: data.logoUrl } : {}),
+                ...(data.heroBannerUrl ? { heroBannerUrl: data.heroBannerUrl } : {}),
+                ...(data.announcementText ? { announcementText: data.announcementText } : {}),
+                ...(data.announcementActive !== undefined ? { announcementActive: data.announcementActive } : {}),
+                ...(data.freeDeliveryThreshold !== undefined ? { freeDeliveryThreshold: data.freeDeliveryThreshold } : {}),
+                ...(data.footerNotice ? { footerNotice: data.footerNotice } : {}),
+              };
+              setWebsiteSettings((prev) => {
+                const updated = { ...prev, ...incomingSettings };
+                safeStorage.setJSON('hb_website_settings', updated);
+                return updated;
+              });
+            }
+
+            // Synchronize Payment settings
+            if (data.paymentSettings) {
+              setPaymentSettings((prev) => {
+                const updated = { ...prev, ...data.paymentSettings };
+                safeStorage.setJSON('hb_payment_settings', updated);
+                return updated;
+              });
+            }
+          }
+        } else {
+          // Initialize centralized settings in Firestore on first load
+          setDoc(settingsDocRef, {
+            id: 'general',
+            officialContact: DEFAULT_OFFICIAL_CONTACT,
+            websiteSettings: INITIAL_WEBSITE_SETTINGS,
+            paymentSettings: INITIAL_PAYMENT_SETTINGS,
+            hotline: DEFAULT_OFFICIAL_CONTACT.hotline,
+            phone: DEFAULT_OFFICIAL_CONTACT.phone,
+            email: DEFAULT_OFFICIAL_CONTACT.email,
+            gmail: DEFAULT_OFFICIAL_CONTACT.gmail,
+            whatsapp: DEFAULT_OFFICIAL_CONTACT.whatsapp,
+            supportHours: DEFAULT_OFFICIAL_CONTACT.supportHours,
+            officeAddress: DEFAULT_OFFICIAL_CONTACT.officeAddress,
+            logoUrl: INITIAL_WEBSITE_SETTINGS.logoUrl,
+            heroBannerUrl: INITIAL_WEBSITE_SETTINGS.heroBannerUrl,
+            announcementText: INITIAL_WEBSITE_SETTINGS.announcementText,
+            announcementActive: INITIAL_WEBSITE_SETTINGS.announcementActive,
+            freeDeliveryThreshold: INITIAL_WEBSITE_SETTINGS.freeDeliveryThreshold,
+            footerNotice: INITIAL_WEBSITE_SETTINGS.footerNotice,
+            termsContent: INITIAL_WEBSITE_SETTINGS.termsContent,
+            privacyContent: INITIAL_WEBSITE_SETTINGS.privacyContent,
+            updatedAt: new Date().toISOString(),
+          }).catch(() => {});
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'settings/general');
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // Customer List
+  const [customersList, setCustomersList] = useState<CustomerInfo[]>(() => {
+    return safeStorage.getJSON('hb_customers_list', INITIAL_CUSTOMERS_LIST);
+  });
+
+  useEffect(() => {
+    safeStorage.setJSON('hb_customers_list', customersList);
   }, [customersList]);
 
   const updateCustomerAccount = (customerId: string, updated: Partial<CustomerInfo>) => {
@@ -825,68 +1033,70 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Cart
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('hb_cart');
-    return saved ? JSON.parse(saved) : [];
+    return safeStorage.getJSON('hb_cart', []);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_cart', JSON.stringify(cart));
+    safeStorage.setJSON('hb_cart', cart);
   }, [cart]);
 
   // Wishlist
   const [wishlist, setWishlist] = useState<string[]>(() => {
-    const saved = localStorage.getItem('hb_wishlist');
-    return saved ? JSON.parse(saved) : ['hb-prod-1', 'hb-prod-5'];
+    return safeStorage.getJSON('hb_wishlist', ['hb-prod-1', 'hb-prod-5']);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_wishlist', JSON.stringify(wishlist));
+    safeStorage.setJSON('hb_wishlist', wishlist);
   }, [wishlist]);
 
-  // Orders
+  // Orders: Centralized Firestore Database Synchronization
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('hb_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    return safeStorage.getJSON('hb_orders', INITIAL_ORDERS);
   });
 
+  // Listen to Firestore orders collection in real time
   useEffect(() => {
-    localStorage.setItem('hb_orders', JSON.stringify(orders));
+    const ordersColRef = collection(db, 'orders');
+    const unsubscribe = onSnapshot(
+      ordersColRef,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const loaded: Order[] = [];
+          snapshot.forEach((snapDoc) => {
+            loaded.push(snapDoc.data() as Order);
+          });
+          setOrders(loaded);
+          safeStorage.setJSON('hb_orders', loaded);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'orders');
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    safeStorage.setJSON('hb_orders', orders);
   }, [orders]);
 
   // Customer Profile
   const [customer, setCustomer] = useState<CustomerInfo>(() => {
-    const saved = localStorage.getItem('hb_customer');
-    return saved ? JSON.parse(saved) : INITIAL_CUSTOMER;
+    return safeStorage.getJSON('hb_customer', INITIAL_CUSTOMER);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_customer', JSON.stringify(customer));
+    safeStorage.setJSON('hb_customer', customer);
   }, [customer]);
-
-  // Official Contact Info
-  const [officialContact, setOfficialContact] = useState<OfficialContactInfo>(() => {
-    const saved = localStorage.getItem('hb_official_contact');
-    return saved ? JSON.parse(saved) : DEFAULT_OFFICIAL_CONTACT;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('hb_official_contact', JSON.stringify(officialContact));
-  }, [officialContact]);
-
-  const updateOfficialContact = (updated: Partial<OfficialContactInfo>) => {
-    setOfficialContact((prev) => ({ ...prev, ...updated }));
-    logActivity('Contact Information Updated', 'Settings', `Updated hotline to ${updated.hotline || officialContact.hotline}`);
-    showToast(language === 'bn' ? 'অফিশিয়াল যোগাযোগ তথ্য সফলভাবে হালনাগাদ হয়েছে' : 'Official contact information updated');
-  };
 
   // Returns
   const [returns, setReturns] = useState<ReturnRequest[]>(() => {
-    const saved = localStorage.getItem('hb_returns');
-    return saved ? JSON.parse(saved) : INITIAL_RETURNS;
+    return safeStorage.getJSON('hb_returns', INITIAL_RETURNS);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_returns', JSON.stringify(returns));
+    safeStorage.setJSON('hb_returns', returns);
   }, [returns]);
 
   const updateReturnStatus = (returnId: string, status: ReturnRequest['status'], comments?: string) => {
@@ -899,12 +1109,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Reviews
   const [reviews, setReviews] = useState<ProductReview[]>(() => {
-    const saved = localStorage.getItem('hb_reviews');
-    return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
+    return safeStorage.getJSON('hb_reviews', INITIAL_REVIEWS);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_reviews', JSON.stringify(reviews));
+    safeStorage.setJSON('hb_reviews', reviews);
   }, [reviews]);
 
   const updateReviewStatus = (reviewId: string, status: 'Approved' | 'Pending' | 'Hidden', reply?: string) => {
@@ -917,12 +1126,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Notifications
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
-    const saved = localStorage.getItem('hb_notifications');
-    return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
+    return safeStorage.getJSON('hb_notifications', INITIAL_NOTIFICATIONS);
   });
 
   useEffect(() => {
-    localStorage.setItem('hb_notifications', JSON.stringify(notifications));
+    safeStorage.setJSON('hb_notifications', notifications);
   }, [notifications]);
 
   // Navigation
@@ -1141,6 +1349,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setOrders((prev) => [newOrder, ...prev]);
+    safeStorage.setJSON('hb_orders', [newOrder, ...orders]);
+
+    // Synchronize to Firestore
+    setDoc(doc(db, 'orders', newOrder.id), newOrder).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, `orders/${newOrder.id}`);
+    });
+
     clearCart();
 
     // Log admin activity
@@ -1189,11 +1404,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { ...step, completed: false };
         });
 
-        return {
+        const targetUpdated = {
           ...order,
           status,
           trackingHistory: updatedHistory,
         };
+
+        // Synchronize updated order to Firestore
+        setDoc(doc(db, 'orders', orderId), targetUpdated, { merge: true }).catch((err) => {
+          handleFirestoreError(err, OperationType.WRITE, `orders/${orderId}`);
+        });
+
+        return targetUpdated;
       })
     );
     logActivity('Order Status Changed', 'Orders', `Order ${orderId} changed to ${status}${note ? ` (${note})` : ''}`, orderId);
@@ -1201,8 +1423,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const assignOrderCourier = (orderId: string, courierId: string, courierName: string, trackingCode?: string) => {
-    setOrders((prev) =>
-      prev.map((o) =>
+    setOrders((prev) => {
+      const updated = prev.map((o) =>
         o.id === orderId
           ? {
               ...o,
@@ -1211,22 +1433,45 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
               courierTrackingCode: trackingCode || o.courierTrackingCode || `HB-${Math.floor(100000 + Math.random() * 900000)}`,
             }
           : o
-      )
-    );
+      );
+      safeStorage.setJSON('hb_orders', updated);
+      const target = updated.find((o) => o.id === orderId);
+      if (target) {
+        setDoc(doc(db, 'orders', orderId), target, { merge: true }).catch((err) => {
+          handleFirestoreError(err, OperationType.WRITE, `orders/${orderId}`);
+        });
+      }
+      return updated;
+    });
     logActivity('Courier Assigned', 'Orders', `Order ${orderId} assigned to ${courierName}`, orderId);
     showToast(`অর্ডারে ${courierName} এসাইন করা হয়েছে`);
   };
 
   const updateOrderPaymentStatus = (orderId: string, status: Order['paymentStatus']) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, paymentStatus: status } : o))
-    );
+    setOrders((prev) => {
+      const updated = prev.map((o) => (o.id === orderId ? { ...o, paymentStatus: status } : o));
+      safeStorage.setJSON('hb_orders', updated);
+      const target = updated.find((o) => o.id === orderId);
+      if (target) {
+        setDoc(doc(db, 'orders', orderId), target, { merge: true }).catch((err) => {
+          handleFirestoreError(err, OperationType.WRITE, `orders/${orderId}`);
+        });
+      }
+      return updated;
+    });
     logActivity('Payment Status Verified', 'Orders', `Order ${orderId} payment status set to ${status}`, orderId);
     showToast(`পেমেন্ট স্ট্যাটাস আপডেট: ${status}`);
   };
 
   const deleteOrder = (orderId: string) => {
-    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    setOrders((prev) => {
+      const updated = prev.filter((o) => o.id !== orderId);
+      safeStorage.setJSON('hb_orders', updated);
+      return updated;
+    });
+    deleteDoc(doc(db, 'orders', orderId)).catch((err) => {
+      handleFirestoreError(err, OperationType.DELETE, `orders/${orderId}`);
+    });
     logActivity('Order Deleted', 'Orders', `Deleted order ID ${orderId}`, orderId);
     showToast('অর্ডার সফলভাবে মোছা হয়েছে');
   };
