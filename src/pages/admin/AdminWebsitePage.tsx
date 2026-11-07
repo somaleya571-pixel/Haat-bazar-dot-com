@@ -10,6 +10,8 @@ import {
   CheckCircle,
   Truck
 } from 'lucide-react';
+import { CloudinaryImageUploader } from '../../components/CloudinaryImageUploader';
+import { FormFooter } from '../../components/FormFooter';
 
 export const AdminWebsitePage: React.FC = () => {
   const { websiteSettings, updateWebsiteSettings, showToast } = useShop();
@@ -19,18 +21,47 @@ export const AdminWebsitePage: React.FC = () => {
   // Branding
   const [logoUrl, setLogoUrl] = useState(websiteSettings.logoUrl);
   const [footerNotice, setFooterNotice] = useState(websiteSettings.footerNotice);
+  const isBrandingDirty = logoUrl !== websiteSettings.logoUrl || footerNotice !== websiteSettings.footerNotice;
+  const handleClearBranding = () => {
+    setLogoUrl(websiteSettings.logoUrl);
+    setFooterNotice(websiteSettings.footerNotice);
+    showToast('ব্র্যান্ডিং সেটিংস রিসেট করা হয়েছে');
+  };
 
   // Announcement
   const [announcementActive, setAnnouncementActive] = useState(websiteSettings.announcementActive);
   const [announcementText, setAnnouncementText] = useState(websiteSettings.announcementText);
   const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(websiteSettings.freeDeliveryThreshold);
+  const isAnnouncementDirty =
+    announcementActive !== websiteSettings.announcementActive ||
+    announcementText !== websiteSettings.announcementText ||
+    Number(freeDeliveryThreshold) !== Number(websiteSettings.freeDeliveryThreshold);
+  const handleClearAnnouncement = () => {
+    setAnnouncementActive(websiteSettings.announcementActive);
+    setAnnouncementText(websiteSettings.announcementText);
+    setFreeDeliveryThreshold(websiteSettings.freeDeliveryThreshold);
+    showToast('অ্যানাউন্সমেন্ট সেটিংস রিসেট করা হয়েছে');
+  };
 
   // Banners
   const [heroBannerUrl, setHeroBannerUrl] = useState(websiteSettings.heroBannerUrl);
+  const isBannerDirty = heroBannerUrl !== websiteSettings.heroBannerUrl;
+  const handleClearBanner = () => {
+    setHeroBannerUrl(websiteSettings.heroBannerUrl);
+    showToast('ব্যানার সেটিংস রিসেট করা হয়েছে');
+  };
 
   // Policies
   const [termsContent, setTermsContent] = useState(websiteSettings.termsContent);
   const [privacyContent, setPrivacyContent] = useState(websiteSettings.privacyContent);
+  const isPoliciesDirty =
+    termsContent !== websiteSettings.termsContent ||
+    privacyContent !== websiteSettings.privacyContent;
+  const handleClearPolicies = () => {
+    setTermsContent(websiteSettings.termsContent);
+    setPrivacyContent(websiteSettings.privacyContent);
+    showToast('পলিসি সেটিংস রিসেট করা হয়েছে');
+  };
 
   const handleSaveBranding = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +98,7 @@ export const AdminWebsitePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 viewport-padding-safe pb-28 sm:pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <div>
@@ -161,9 +192,20 @@ export const AdminWebsitePage: React.FC = () => {
               </div>
             </div>
 
+            {/* Cloudinary Direct Logo Uploader */}
+            <div className="pt-2">
+              <CloudinaryImageUploader
+                label="অফিশিয়াল লোগো আপলোড (Cloudinary Direct Upload)"
+                currentImageUrl={logoUrl}
+                onImageUploaded={(url) => setLogoUrl(url)}
+                aspectRatio="square"
+                helperText="সরাসরি Cloudinary ক্লাউডে হাট বাজারের নতুন লোগো আপলোড করুন।"
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-gray-200 mb-1">
                   Logo Asset URL / Path
                 </label>
                 <input
@@ -171,13 +213,13 @@ export const AdminWebsitePage: React.FC = () => {
                   value={logoUrl}
                   onChange={(e) => setLogoUrl(e.target.value)}
                   placeholder="/assets/official_haat_bazar_logo.png"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#006B35]"
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#006B35]"
                 />
                 <div className="flex gap-2 mt-2">
                   <button
                     type="button"
                     onClick={() => setLogoUrl('/assets/haat_bazar_official_logo.png')}
-                    className="text-[11px] text-[#006B35] font-semibold hover:underline"
+                    className="text-[11px] text-[#006B35] font-semibold hover:underline cursor-pointer"
                   >
                     Reset to Official Logo
                   </button>
@@ -185,7 +227,7 @@ export const AdminWebsitePage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setLogoUrl('/assets/aistudio/Bangladeshi_Marketplace_Grocery_Banner_af4d101b.png')}
-                    className="text-[11px] text-[#006B35] font-semibold hover:underline"
+                    className="text-[11px] text-[#006B35] font-semibold hover:underline cursor-pointer"
                   >
                     Use Full Banner Header
                   </button>
@@ -193,26 +235,25 @@ export const AdminWebsitePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-gray-200 mb-1">
                   Footer Brand Notice
                 </label>
                 <input
                   type="text"
                   value={footerNotice}
                   onChange={(e) => setFooterNotice(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
                 />
               </div>
             </div>
 
-            <div className="pt-3 flex justify-end">
-              <button
-                type="submit"
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#006B35] hover:bg-[#005228] text-white font-bold rounded-xl text-sm transition-colors shadow-sm"
-              >
-                <Save className="w-4 h-4" /> Save Brand & Logo
-              </button>
-            </div>
+            {/* Dynamic Form Footer */}
+            <FormFooter
+              onClear={handleClearBranding}
+              isDirty={isBrandingDirty}
+              saveText="ব্র্যান্ড ও লোগো সংরক্ষণ করুন (Save)"
+              clearText="রিসেট করুন (Clear)"
+            />
           </div>
         </form>
       )}
@@ -270,90 +311,98 @@ export const AdminWebsitePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-3 flex justify-end">
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#006B35] hover:bg-[#005228] text-white font-bold rounded-xl text-sm transition-colors shadow-sm"
-            >
-              <Save className="w-4 h-4" /> Save Announcement Settings
-            </button>
-          </div>
+          {/* Dynamic Form Footer */}
+          <FormFooter
+            onClear={handleClearAnnouncement}
+            isDirty={isAnnouncementDirty}
+            saveText="অ্যানাউন্সমেন্ট সংরক্ষণ করুন (Save)"
+            clearText="রিসেট করুন (Clear)"
+          />
         </form>
       )}
 
       {/* Tab 3: Banners */}
       {activeTab === 'banners' && (
-        <form onSubmit={handleSaveBanners} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+        <form onSubmit={handleSaveBanners} className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-slate-200 dark:border-gray-800 shadow-sm space-y-6">
           <div>
-            <h2 className="font-bold text-[#17231B] text-base">Homepage Hero Banner</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="font-bold text-[#17231B] dark:text-white text-base">Homepage Hero Banner</h2>
+            <p className="text-xs text-slate-500 dark:text-gray-400">
               Control the main hero banner displayed on the customer landing page.
             </p>
           </div>
 
+          {/* Cloudinary Direct Banner Upload */}
+          <div className="pt-1">
+            <CloudinaryImageUploader
+              label="হিরো ব্যানার আপলোড (Cloudinary Direct Banner Upload)"
+              currentImageUrl={heroBannerUrl}
+              onImageUploaded={(url) => setHeroBannerUrl(url)}
+              aspectRatio="banner"
+              helperText="সরাসরি Cloudinary ক্লাউডে হোমপেজের প্রশস্ত হিরো ব্যানার আপলোড করুন।"
+            />
+          </div>
+
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Hero Banner Image URL</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-gray-200 mb-1">Hero Banner Image URL</label>
             <input
               type="text"
               value={heroBannerUrl}
               onChange={(e) => setHeroBannerUrl(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
+              className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
             />
           </div>
 
-          <div className="relative rounded-xl overflow-hidden border border-slate-200">
-            <img src={heroBannerUrl} alt="Hero Banner" className="w-full h-56 object-cover" />
+          <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-gray-700 shadow-2xs">
+            <img src={heroBannerUrl} alt="Hero Banner" className="w-full h-48 sm:h-64 object-cover" />
           </div>
 
-          <div className="pt-3 flex justify-end">
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#006B35] hover:bg-[#005228] text-white font-bold rounded-xl text-sm transition-colors shadow-sm"
-            >
-              <Save className="w-4 h-4" /> Update Hero Banner
-            </button>
-          </div>
+          {/* Dynamic Form Footer */}
+          <FormFooter
+            onClear={handleClearBanner}
+            isDirty={isBannerDirty}
+            saveText="ব্যানার আপডেট করুন (Save Banner)"
+            clearText="রিসেট করুন (Clear)"
+          />
         </form>
       )}
 
       {/* Tab 4: Policies */}
       {activeTab === 'policies' && (
-        <form onSubmit={handleSavePolicies} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+        <form onSubmit={handleSavePolicies} className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-slate-200 dark:border-gray-800 shadow-sm space-y-6">
           <div>
-            <h2 className="font-bold text-[#17231B] text-base">Legal Policies & Terms of Service</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="font-bold text-[#17231B] dark:text-white text-base">Legal Policies & Terms of Service</h2>
+            <p className="text-xs text-slate-500 dark:text-gray-400">
               Define customer satisfaction policies, terms of service, and privacy notices.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Terms & Conditions Content</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-gray-200 mb-1">Terms & Conditions Content</label>
             <textarea
               rows={5}
               value={termsContent}
               onChange={(e) => setTermsContent(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
+              className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Privacy Policy Notice Content</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-gray-200 mb-1">Privacy Policy Notice Content</label>
             <textarea
               rows={5}
               value={privacyContent}
               onChange={(e) => setPrivacyContent(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
+              className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
             />
           </div>
 
-          <div className="pt-3 flex justify-end">
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#006B35] hover:bg-[#005228] text-white font-bold rounded-xl text-sm transition-colors shadow-sm"
-            >
-              <Save className="w-4 h-4" /> Save Legal Policies
-            </button>
-          </div>
+          {/* Dynamic Form Footer */}
+          <FormFooter
+            onClear={handleClearPolicies}
+            isDirty={isPoliciesDirty}
+            saveText="পলিসি সংরক্ষণ করুন (Save Policies)"
+            clearText="রিসেট করুন (Clear)"
+          />
         </form>
       )}
     </div>

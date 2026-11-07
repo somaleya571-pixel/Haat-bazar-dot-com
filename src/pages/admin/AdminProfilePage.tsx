@@ -12,6 +12,8 @@ import {
   Lock,
   Award
 } from 'lucide-react';
+import { CloudinaryImageUploader } from '../../components/CloudinaryImageUploader';
+import { FormFooter } from '../../components/FormFooter';
 
 export const AdminProfilePage: React.FC = () => {
   const { adminProfile, updateAdminProfile, logoutAdmin, showToast, navigateTo } = useShop();
@@ -22,6 +24,25 @@ export const AdminProfilePage: React.FC = () => {
   const [bio, setBio] = useState(adminProfile.bio);
   const [avatar, setAvatar] = useState(adminProfile.avatar);
   const [isOnline, setIsOnline] = useState(adminProfile.status === 'Online');
+
+  // Track dynamic isDirty state for Save/Clear buttons
+  const isDirty =
+    name !== adminProfile.name ||
+    email !== adminProfile.email ||
+    phone !== adminProfile.phone ||
+    bio !== adminProfile.bio ||
+    avatar !== adminProfile.avatar ||
+    isOnline !== (adminProfile.status === 'Online');
+
+  const handleClearProfile = () => {
+    setName(adminProfile.name);
+    setEmail(adminProfile.email);
+    setPhone(adminProfile.phone);
+    setBio(adminProfile.bio);
+    setAvatar(adminProfile.avatar);
+    setIsOnline(adminProfile.status === 'Online');
+    showToast('প্রোফাইল ফর্মের পরিবর্তনসমূহ রিসেট করা হয়েছে');
+  };
 
   // Password Modal
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -77,7 +98,7 @@ export const AdminProfilePage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 viewport-padding-safe pb-24 sm:pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <div>
@@ -197,24 +218,26 @@ export const AdminProfilePage: React.FC = () => {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Avatar Image URL</label>
-                <input
-                  type="text"
-                  value={avatar}
-                  onChange={(e) => setAvatar(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
-                />
-              </div>
+            </div>
+
+            {/* Cloudinary Direct Image Upload for Admin Profile */}
+            <div className="pt-1">
+              <CloudinaryImageUploader
+                label="অ্যাডমিন প্রোফাইল ছবি (Cloudinary Direct Upload)"
+                currentImageUrl={avatar}
+                onImageUploaded={(url) => setAvatar(url)}
+                aspectRatio="square"
+                helperText="সরাসরি Cloudinary ক্লাউডে ছবি আপলোড করুন অথবা ক্যামেরা/ফাইল সিলেক্ট করুন।"
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Bio / Role Description</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-gray-200 mb-1">Bio / Role Description</label>
               <textarea
                 rows={2}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006B35]"
               />
             </div>
 
@@ -224,21 +247,20 @@ export const AdminProfilePage: React.FC = () => {
                 id="isOnlineCheckbox"
                 checked={isOnline}
                 onChange={(e) => setIsOnline(e.target.checked)}
-                className="w-4 h-4 accent-[#006B35] rounded"
+                className="w-4 h-4 accent-[#006B35] rounded cursor-pointer"
               />
-              <label htmlFor="isOnlineCheckbox" className="text-xs font-semibold text-slate-700 cursor-pointer">
-                Show as Online on Operator Dashboard
+              <label htmlFor="isOnlineCheckbox" className="text-xs font-semibold text-slate-700 dark:text-gray-300 cursor-pointer">
+                অপারেটর ড্যাশবোর্ডে অনলাইন (Online) হিসেবে প্রদর্শন করুন
               </label>
             </div>
 
-            <div className="pt-3 flex justify-end">
-              <button
-                type="submit"
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#006B35] hover:bg-[#005228] text-white font-bold rounded-xl text-sm transition-colors shadow-sm"
-              >
-                <Save className="w-4 h-4" /> Save Profile Details
-              </button>
-            </div>
+            {/* Redesigned Form Footer with Dynamically Activated Save & Clear Buttons */}
+            <FormFooter
+              onClear={handleClearProfile}
+              isDirty={isDirty}
+              saveText="প্রোফাইল সংরক্ষণ করুন (Save)"
+              clearText="রিসেট করুন (Clear)"
+            />
           </form>
 
           {/* Permissions Matrix */}

@@ -13,6 +13,7 @@ import {
   XCircle, 
   AlertTriangle
 } from 'lucide-react';
+import { FormFooter } from '../../components/FormFooter';
 
 export const AdminSettingsPage: React.FC = () => {
   const { 
@@ -38,6 +39,31 @@ export const AdminSettingsPage: React.FC = () => {
 
   const [codEnabled, setCodEnabled] = useState(paymentSettings.codEnabled);
 
+  // Dynamic dirty state and reset for payments
+  const isPaymentDirty =
+    bKashEnabled !== paymentSettings.bKashEnabled ||
+    bKashNumber !== paymentSettings.bKashNumber ||
+    bKashType !== paymentSettings.bKashType ||
+    bKashInstructions !== paymentSettings.bKashInstructions ||
+    nagadEnabled !== paymentSettings.nagadEnabled ||
+    nagadNumber !== paymentSettings.nagadNumber ||
+    nagadType !== paymentSettings.nagadType ||
+    nagadInstructions !== paymentSettings.nagadInstructions ||
+    codEnabled !== paymentSettings.codEnabled;
+
+  const handleClearPaymentSettings = () => {
+    setBKashEnabled(paymentSettings.bKashEnabled);
+    setBKashNumber(paymentSettings.bKashNumber);
+    setBKashType(paymentSettings.bKashType);
+    setBKashInstructions(paymentSettings.bKashInstructions);
+    setNagadEnabled(paymentSettings.nagadEnabled);
+    setNagadNumber(paymentSettings.nagadNumber);
+    setNagadType(paymentSettings.nagadType);
+    setNagadInstructions(paymentSettings.nagadInstructions);
+    setCodEnabled(paymentSettings.codEnabled);
+    showToast('পেমেন্ট সেটিংস পূর্বাবস্থায় রিসেট করা হয়েছে');
+  };
+
   // Local state for contact settings
   const [hotline, setHotline] = useState(officialContact.hotline);
   const [phone, setPhone] = useState(officialContact.phone);
@@ -46,6 +72,27 @@ export const AdminSettingsPage: React.FC = () => {
   const [whatsapp, setWhatsapp] = useState(officialContact.whatsapp);
   const [supportHours, setSupportHours] = useState(officialContact.supportHours);
   const [officeAddress, setOfficeAddress] = useState(officialContact.officeAddress);
+
+  // Dynamic dirty state and reset for contact info
+  const isContactDirty =
+    hotline !== officialContact.hotline ||
+    phone !== officialContact.phone ||
+    gmail !== officialContact.gmail ||
+    email !== officialContact.email ||
+    whatsapp !== officialContact.whatsapp ||
+    supportHours !== officialContact.supportHours ||
+    officeAddress !== officialContact.officeAddress;
+
+  const handleClearContactSettings = () => {
+    setHotline(officialContact.hotline);
+    setPhone(officialContact.phone);
+    setGmail(officialContact.gmail);
+    setEmail(officialContact.email);
+    setWhatsapp(officialContact.whatsapp);
+    setSupportHours(officialContact.supportHours);
+    setOfficeAddress(officialContact.officeAddress);
+    showToast('যোগাযোগ সেটিংস পূর্বাবস্থায় রিসেট করা হয়েছে');
+  };
 
   // Tab
   const [activeTab, setActiveTab] = useState<'payments' | 'verification' | 'contact'>('payments');
@@ -86,7 +133,7 @@ export const AdminSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 viewport-padding-safe pb-28 sm:pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <div>
@@ -292,14 +339,13 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-6 py-3 bg-[#006B35] hover:bg-[#005228] text-white font-bold rounded-xl text-sm transition-colors shadow-sm"
-            >
-              <Save className="w-4 h-4" /> Save Payment Settings
-            </button>
-          </div>
+          {/* Dynamic Form Footer with distinct Save and Clear buttons */}
+          <FormFooter
+            onClear={handleClearPaymentSettings}
+            isDirty={isPaymentDirty}
+            saveText="পেমেন্ট সেটিংস সংরক্ষণ করুন (Save)"
+            clearText="রিসেট করুন (Clear)"
+          />
         </form>
       )}
 
@@ -452,14 +498,13 @@ export const AdminSettingsPage: React.FC = () => {
             />
           </div>
 
-          <div className="pt-3 flex justify-end">
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#006B35] hover:bg-[#005228] text-white font-bold rounded-xl text-sm transition-colors shadow-sm"
-            >
-              <Save className="w-4 h-4" /> Save Contact Details
-            </button>
-          </div>
+          {/* Dynamic Form Footer with distinct Save and Clear buttons */}
+          <FormFooter
+            onClear={handleClearContactSettings}
+            isDirty={isContactDirty}
+            saveText="যোগাযোগ তথ্য সংরক্ষণ করুন (Save)"
+            clearText="রিসেট করুন (Clear)"
+          />
         </form>
       )}
     </div>

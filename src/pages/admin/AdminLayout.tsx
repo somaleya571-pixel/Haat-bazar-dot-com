@@ -27,6 +27,8 @@ import {
   Clock,
   Sparkles,
   ChevronLeft,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { AdminMenuTab } from '../../types';
@@ -62,6 +64,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     showToast,
     ownerSession,
     triggerSimulatedConcurrentSession,
+    theme,
+    toggleTheme,
   } = useShop();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -310,6 +314,19 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <span>{adminProfile.status}</span>
             </button>
 
+            {/* Dark / Light Mode Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-[#006B35] transition-all cursor-pointer"
+              title={theme === 'dark' ? 'সুইচ করুন ব্রাইট মোডে' : 'সুইচ করুন ডার্ক মোডে'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-600" />
+              )}
+            </button>
+
             {/* Switch to Customer Storefront button */}
             <button
               onClick={() => {
@@ -443,8 +460,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </nav>
         </aside>
 
-        {/* Dynamic Admin Page Container */}
-        <main className="flex-1 min-w-0">{children}</main>
+        {/* Dynamic Admin Page Container with Mobile Viewport Padding */}
+        <main className="flex-1 min-w-0 pb-32 sm:pb-12 viewport-padding-safe">{children}</main>
       </div>
 
       {/* 3. MOBILE SLIDE-OUT DRAWER FOR FULL 15-ITEM MENU */}

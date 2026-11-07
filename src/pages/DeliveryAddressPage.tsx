@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, MapPin, CheckCircle, Save, Plus, ShieldCheck } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { SearchableDropdown } from '../components/SearchableDropdown';
+import { FormFooter } from '../components/FormFooter';
 import {
   getDistricts,
   getUpazilas,
@@ -18,6 +19,22 @@ export const DeliveryAddressPage: React.FC = () => {
   const [village, setVillage] = useState(customer.village || 'Road 8/A');
   const [addressDetails, setAddressDetails] = useState(customer.addressDetails || 'House 34, Flat 5A');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const isDirty =
+    district !== (customer.district || 'Dhaka') ||
+    upazila !== (customer.upazila || 'Dhanmondi') ||
+    thana !== (customer.thana || 'Dhanmondi Thana') ||
+    village !== (customer.village || 'Road 8/A') ||
+    addressDetails !== (customer.addressDetails || 'House 34, Flat 5A');
+
+  const handleClearAddress = () => {
+    setDistrict(customer.district || 'Dhaka');
+    setUpazila(customer.upazila || 'Dhanmondi');
+    setThana(customer.thana || 'Dhanmondi Thana');
+    setVillage(customer.village || 'Road 8/A');
+    setAddressDetails(customer.addressDetails || 'House 34, Flat 5A');
+    setErrors({});
+  };
 
   // District options
   const districtList = getDistricts();
@@ -76,7 +93,7 @@ export const DeliveryAddressPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-20">
+    <div className="max-w-2xl mx-auto space-y-6 pb-32 sm:pb-16 viewport-padding-safe">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-200 pb-4">
         <div className="flex items-center gap-3">
@@ -181,24 +198,13 @@ export const DeliveryAddressPage: React.FC = () => {
           )}
         </div>
 
-        {/* Submit Button */}
-        <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => navigateTo('checkout')}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold border border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            বাতিল
-          </button>
-
-          <button
-            type="submit"
-            className="px-6 py-2.5 rounded-xl text-xs font-bold bg-[#007A3D] hover:bg-[#006030] text-white shadow-md flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>{language === 'bn' ? 'ঠিকানা সংরক্ষণ ও চেকআউটে ফিরুন' : 'Save Address & Return'}</span>
-          </button>
-        </div>
+        {/* Dynamic Form Footer with distinct Save and Clear buttons */}
+        <FormFooter
+          onClear={handleClearAddress}
+          isDirty={isDirty}
+          saveText={language === 'bn' ? 'ঠিকানা সংরক্ষণ ও চেকআউটে ফিরুন' : 'Save Address & Return'}
+          clearText="রিসেট করুন (Clear)"
+        />
       </form>
 
       {/* Address Rules Notice */}

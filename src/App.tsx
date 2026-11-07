@@ -161,8 +161,8 @@ const MainContent: React.FC = () => {
       {/* Header with Hotline, Logo, Search, Menu */}
       <Header onOpenDrawer={() => setIsDrawerOpen(true)} />
 
-      {/* Main Page Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
+      {/* Main Page Content with Mobile Viewport Safety */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-28 sm:pb-12 viewport-padding-safe">
         {renderCurrentPage()}
       </main>
 

@@ -33,6 +33,8 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { CloudinaryImageUploader } from '../components/CloudinaryImageUploader';
+import { FormFooter } from '../components/FormFooter';
 
 type ProfileMenuTab = 'overview' | 'settings' | 'contact' | 'services' | 'auth';
 
@@ -55,6 +57,10 @@ export const CustomerProfilePage: React.FC = () => {
 
   // Active Profile Menu Tab
   const [activeTab, setActiveTab] = useState<ProfileMenuTab>('overview');
+
+  // Avatar Modal State for Cloudinary
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(customer.avatar || '');
 
   // Edit Profile States
   const [isEditing, setIsEditing] = useState(false);
@@ -208,12 +214,12 @@ export const CustomerProfilePage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+    <div className="max-w-4xl mx-auto space-y-6 pb-32 sm:pb-16 viewport-padding-safe">
       {/* 1. TOP PROFILE HERO CARD */}
       <div className="bg-white rounded-3xl p-5 sm:p-7 border border-gray-200/90 shadow-xs relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
-          {/* Avatar with upload simulator */}
-          <div className="relative group">
+          {/* Avatar with Cloudinary direct upload modal trigger */}
+          <div className="relative group cursor-pointer" onClick={() => setIsAvatarModalOpen(true)}>
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-4 border-emerald-100 bg-emerald-50 shadow-md">
               <img
                 src={
@@ -222,14 +228,18 @@ export const CustomerProfilePage: React.FC = () => {
                     : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
                 }
                 alt={customer.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               />
             </div>
             {isLoggedIn && (
               <button
-                onClick={() => showToast('ছবি আপলোড সফল হয়েছে (Profile Photo Updated)')}
-                className="absolute bottom-0 right-0 p-1.5 sm:p-2 bg-[#007A3D] text-white rounded-full shadow-md hover:bg-[#006030] transition-colors"
-                title="Change Profile Photo"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsAvatarModalOpen(true);
+                }}
+                className="absolute bottom-0 right-0 p-1.5 sm:p-2 bg-[#007A3D] text-white rounded-full shadow-md hover:bg-[#006030] transition-colors cursor-pointer"
+                title="Cloudinary ছবি আপলোড করুন"
               >
                 <Camera className="w-3.5 h-3.5" />
               </button>
@@ -468,21 +478,18 @@ export const CustomerProfilePage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 border border-gray-300 text-xs font-semibold rounded-xl"
-                  >
-                    বাতিল
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-[#007A3D] hover:bg-[#006030] text-white text-xs font-bold rounded-xl shadow-xs"
-                  >
-                    সংরক্ষণ করুন (Save)
-                  </button>
-                </div>
+                {/* Dynamic Form Footer with distinct Save and Clear buttons */}
+                <FormFooter
+                  onClear={() => {
+                    setName(customer.name);
+                    setPhone(customer.phone);
+                    setEmail(customer.email);
+                    setIsEditing(false);
+                  }}
+                  isDirty={name !== customer.name || phone !== customer.phone || email !== customer.email}
+                  saveText="তথ্য সংরক্ষণ করুন (Save)"
+                  clearText="রিসেট করুন (Clear)"
+                />
               </form>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -600,14 +607,17 @@ export const CustomerProfilePage: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex justify-end pt-1">
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-[#007A3D] hover:bg-[#006030] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
-                >
-                  পিন আপডেট করুন
-                </button>
-              </div>
+              {/* Dynamic Form Footer with distinct Save and Clear buttons */}
+              <FormFooter
+                onClear={() => {
+                  setCurrentPin('');
+                  setNewPin('');
+                  setConfirmPin('');
+                }}
+                isDirty={Boolean(currentPin || newPin || confirmPin)}
+                saveText="পিন আপডেট করুন (Save PIN)"
+                clearText="মুছে ফেলুন (Clear)"
+              />
             </form>
           </div>
 
@@ -852,12 +862,16 @@ export const CustomerProfilePage: React.FC = () => {
                     />
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 bg-[#007A3D] hover:bg-[#006030] text-white font-bold rounded-xl shadow-xs transition-colors"
-                  >
-                    মেসেজ পাঠান (Send Message)
-                  </button>
+                  {/* Dynamic Form Footer */}
+                  <FormFooter
+                    onClear={() => {
+                      setContactMessage('');
+                      setContactSubject('সাধারণ অনুসন্ধান');
+                    }}
+                    isDirty={Boolean(contactMessage.trim())}
+                    saveText="মেসেজ পাঠান (Send Message)"
+                    clearText="মুছে ফেলুন (Clear)"
+                  />
                 </form>
               )}
             </div>
@@ -1164,6 +1178,50 @@ export const CustomerProfilePage: React.FC = () => {
                 className="w-1/2 py-2.5 bg-[#007A3D] hover:bg-[#006030] text-white text-xs font-bold rounded-xl shadow-xs"
               >
                 যাচাই ও সম্পন্ন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cloudinary Direct Avatar Upload Modal for Customer */}
+      {isAvatarModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+              <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-2">
+                <Camera className="w-5 h-5 text-[#007A3D]" />
+                <span>গ্রাহক প্রোফাইল ছবি আপলোড (Cloudinary)</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <CloudinaryImageUploader
+              label="সরাসরি Cloudinary অ্যাকাউন্টে আপলোড"
+              currentImageUrl={customer.avatar}
+              onImageUploaded={(url) => {
+                setAvatarPreview(url);
+                updateCustomerProfile({ avatar: url });
+                showToast('ক্লাউডিনারি প্রোফাইল ছবি সফলভাবে আপডেট হয়েছে!');
+                setIsAvatarModalOpen(false);
+              }}
+              aspectRatio="square"
+              helperText="ক্যামেরা থেকে সরাসরি ছবি তুলুন অথবা গ্যালারি থেকে আপলোড করুন।"
+            />
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-700 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 cursor-pointer"
+              >
+                বন্ধ করুন
               </button>
             </div>
           </div>

@@ -76,3 +76,15 @@ html.dark textarea {
   color: #f8fafc !important;
   border-color: #223c44 !important;
 }
+
+/* Mobile Viewport Safety & Keyboard Avoidance */
+input, select, textarea {
+  scroll-margin-top: 6.5rem;
+  scroll-margin-bottom: 7.5rem;
+}
+
+/* Ensure mobile pages have ample viewport clearance above bottom navigation and virtual keyboards */
+.viewport-padding-safe {
+  padding-bottom: max(6.5rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem));
+}
+

@@ -21,6 +21,8 @@ import {
 import { useShop } from '../../context/ShopContext';
 import { Product } from '../../types';
 import { calculateEffectivePrice, formatCurrency } from '../../utils/pricing';
+import { CloudinaryImageUploader } from '../../components/CloudinaryImageUploader';
+import { FormFooter } from '../../components/FormFooter';
 
 const PRODUCT_CATEGORIES = [
   { id: 'Grocery', nameBn: 'মুদি বাজার (Grocery)' },
@@ -144,7 +146,7 @@ export const AdminProductsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 viewport-padding-safe pb-28 sm:pb-12">
       {/* 1. HEADER & ACTION BAR */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#E2E8F0] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
@@ -489,48 +491,58 @@ export const AdminProductsPage: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1 sm:col-span-2">
-                <label className="font-bold text-gray-700">মূল ছবির লিংক (Primary Image URL)</label>
-                <input
-                  type="url"
-                  value={newProductForm.image}
-                  onChange={(e) => setNewProductForm({ ...newProductForm, image: e.target.value })}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full p-2.5 rounded-xl border border-gray-300 focus:border-[#006B35] outline-hidden"
-                  required
+              {/* Direct Cloudinary Image Uploader for Primary Product Image */}
+              <div className="sm:col-span-2 pt-1">
+                <CloudinaryImageUploader
+                  label="পণ্যের মূল কভার ছবি (Cloudinary Direct Upload)"
+                  currentImageUrl={newProductForm.image}
+                  onImageUploaded={(url) => setNewProductForm({ ...newProductForm, image: url })}
+                  aspectRatio="square"
+                  helperText="সরাসরি Cloudinary ক্লাউডে পণ্যের ছবি আপলোড করুন।"
                 />
               </div>
 
-              {/* Multi-image Uploader simulator */}
-              <div className="space-y-1 sm:col-span-2 p-3 bg-gray-50 rounded-2xl border border-gray-200">
-                <label className="font-bold text-gray-700 block">
-                  একাধিক অতিরিক্ত ছবি যোগ করুন (Multiple Product Images)
+              {/* Multi-image Gallery with Cloudinary and URL Support */}
+              <div className="space-y-2 sm:col-span-2 p-3.5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 text-xs">
+                <label className="font-bold text-gray-700 dark:text-gray-200 block">
+                  অতিরিক্ত গ্যালারি ছবিসমূহ (Additional Gallery Images)
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="url"
                     value={imageUrlInput}
                     onChange={(e) => setImageUrlInput(e.target.value)}
-                    placeholder="অতিরিক্ত ছবির URL দিন..."
-                    className="flex-1 p-2 rounded-xl border border-gray-300 bg-white"
+                    placeholder="ছবির URL পেস্ট করুন..."
+                    className="flex-1 p-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"
                   />
                   <button
                     type="button"
                     onClick={() => handleAddImageToForm(false)}
-                    className="px-3 py-2 bg-[#006B35] text-white rounded-xl font-bold cursor-pointer"
+                    className="px-4 py-2 bg-[#006B35] text-white rounded-xl font-bold cursor-pointer shrink-0"
                   >
-                    যোগ করুন
+                    গ্যালারিতে যোগ করুন
                   </button>
                 </div>
                 {newProductForm.images && newProductForm.images.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-2">
                     {newProductForm.images.map((img, i) => (
-                      <img
-                        key={i}
-                        src={img}
-                        alt=""
-                        className="w-10 h-10 object-cover rounded-lg border border-gray-300"
-                      />
+                      <div key={i} className="relative group">
+                        <img
+                          src={img}
+                          alt=""
+                          className="w-12 h-12 object-cover rounded-xl border border-gray-300 dark:border-gray-600 shadow-2xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = newProductForm.images?.filter((_, idx) => idx !== i) || [];
+                            setNewProductForm({ ...newProductForm, images: updated });
+                          }}
+                          className="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -538,7 +550,7 @@ export const AdminProductsPage: React.FC = () => {
 
               {/* Feature Toggles */}
               <div className="sm:col-span-2 flex flex-wrap gap-4 pt-1">
-                <label className="flex items-center gap-2 cursor-pointer font-bold text-gray-700">
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
                     checked={newProductForm.isFlashSale}
@@ -550,7 +562,7 @@ export const AdminProductsPage: React.FC = () => {
                   <span>ফ্ল্যাশ সেল (Flash Sale)</span>
                 </label>
 
-                <label className="flex items-center gap-2 cursor-pointer font-bold text-gray-700">
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
                     checked={newProductForm.isPopular}
@@ -562,7 +574,7 @@ export const AdminProductsPage: React.FC = () => {
                   <span>জনপ্রিয় পণ্য (Popular)</span>
                 </label>
 
-                <label className="flex items-center gap-2 cursor-pointer font-bold text-gray-700">
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
                     checked={newProductForm.isAvailable}
@@ -576,21 +588,16 @@ export const AdminProductsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-gray-100 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="px-4 py-2 border border-gray-300 text-xs font-semibold rounded-xl cursor-pointer"
-              >
-                বাতিল
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2.5 bg-[#006B35] hover:bg-[#005229] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer"
-              >
-                পণ্য সংরক্ষণ ও প্রকাশ করুন
-              </button>
-            </div>
+            {/* Dynamic Form Footer with distinct Save and Clear buttons */}
+            <FormFooter
+              onClear={() => {
+                setNewProductForm(initialNewProduct);
+                setImageUrlInput('');
+              }}
+              isDirty={Boolean(newProductForm.nameBn || newProductForm.regularPrice !== 150 || newProductForm.description)}
+              saveText="পণ্য প্রকাশ করুন (Save Product)"
+              clearText="ফর্ম রিসেট করুন (Clear)"
+            />
           </form>
         </div>
       )}
@@ -738,35 +745,30 @@ export const AdminProductsPage: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1 sm:col-span-2">
-                <label className="font-bold text-gray-700">মূল ছবির URL</label>
-                <input
-                  type="url"
-                  value={editingProduct.image}
-                  onChange={(e) =>
-                    setEditingProduct({ ...editingProduct, image: e.target.value })
+              {/* Direct Cloudinary Image Uploader for Edit Product Modal */}
+              <div className="sm:col-span-2 pt-1">
+                <CloudinaryImageUploader
+                  label="পণ্যের কভার ছবি পরিবর্তন (Cloudinary Direct Upload)"
+                  currentImageUrl={editingProduct.image}
+                  onImageUploaded={(url) =>
+                    setEditingProduct({ ...editingProduct, image: url })
                   }
-                  className="w-full p-2.5 rounded-xl border border-gray-300"
-                  required
+                  aspectRatio="square"
+                  helperText="নতুন ছবি আপলোড করতে ডিভাইস থেকে নির্বাচন করুন বা ড্রপ করুন।"
                 />
               </div>
             </div>
 
-            <div className="pt-3 border-t border-gray-100 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setEditingProduct(null)}
-                className="px-4 py-2 border border-gray-300 text-xs font-semibold rounded-xl"
-              >
-                বাতিল
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2.5 bg-[#006B35] hover:bg-[#005229] text-white text-xs font-bold rounded-xl shadow-xs"
-              >
-                পরিবর্তন সংরক্ষণ করুন
-              </button>
-            </div>
+            {/* Dynamic Form Footer with distinct Save and Clear buttons */}
+            <FormFooter
+              onClear={() => {
+                const original = products.find((p) => p.id === editingProduct.id);
+                if (original) setEditingProduct({ ...original });
+              }}
+              isDirty={true}
+              saveText="পরিবর্তন সংরক্ষণ করুন (Save Changes)"
+              clearText="পূর্বাবস্থায় রিসেট (Clear)"
+            />
           </form>
         </div>
       )}
