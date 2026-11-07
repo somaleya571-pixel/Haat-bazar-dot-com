@@ -8,6 +8,7 @@ import {
   ProductReview,
   AppNotification,
   CustomerInfo,
+  OfficialContactInfo,
 } from '../types';
 import {
   INITIAL_PRODUCTS,
@@ -19,6 +20,18 @@ import {
 } from '../data/mockData';
 import { calculateEffectivePrice, calculateCartTotals } from '../utils/pricing';
 import { generateOrderId } from '../utils/order';
+
+export const DEFAULT_OFFICIAL_CONTACT: OfficialContactInfo = {
+  hotline: '+880 1700-123456',
+  phone: '+880 1700-123456',
+  email: 'official@hadbazar.com',
+  gmail: 'haatbazar.official@gmail.com',
+  whatsapp: '+880 1700-123456',
+  supportHours: 'সকাল ৮:০০টা - রাত ১১:০০টা (প্রতিদিন)',
+  officeAddress: 'বাড়ি #৪২, রোড #০৭, সেক্টর #৩, উত্তরা মডেল টাউন, ঢাকা-১২৩০, বাংলাদেশ।',
+  tradeLicense: 'TRAD/DNCC/029182/2024',
+  ecabNo: 'e-CAB/M-4921',
+};
 
 interface ShopContextType {
   currentPage: PageId;
@@ -61,6 +74,13 @@ interface ShopContextType {
   // Customer Profile & Address
   customer: CustomerInfo;
   updateCustomerProfile: (updated: Partial<CustomerInfo>) => void;
+  isLoggedIn: boolean;
+  login: (phoneOrEmail?: string) => void;
+  logout: () => void;
+
+  // Official Contact Info (Synced across customer profile, header, footer and admin editable)
+  officialContact: OfficialContactInfo;
+  updateOfficialContact: (updated: Partial<OfficialContactInfo>) => void;
 
   // Returns
   returns: ReturnRequest[];
@@ -128,6 +148,31 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 3200);
   };
 
+  // Auth state (Login / Logout)
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    const saved = localStorage.getItem('hb_logged_in');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const login = (phoneOrEmail?: string) => {
+    setIsLoggedIn(true);
+    localStorage.setItem('hb_logged_in', 'true');
+    if (phoneOrEmail) {
+      setCustomer((prev) => ({
+        ...prev,
+        phone: phoneOrEmail.includes('@') ? prev.phone : phoneOrEmail,
+        email: phoneOrEmail.includes('@') ? phoneOrEmail : prev.email,
+      }));
+    }
+    showToast(language === 'bn' ? 'সফলভাবে লগইন সম্পন্ন হয়েছে!' : 'Successfully logged in!');
+  };
+
+  const logout = () => {
+    setIsLoggedIn(false);
+    localStorage.setItem('hb_logged_in', 'false');
+    showToast(language === 'bn' ? 'আপনি সফলভাবে লগআউট করেছেন।' : 'You have logged out.');
+  };
+
   // Products
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('hb_products');
@@ -177,6 +222,21 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem('hb_customer', JSON.stringify(customer));
   }, [customer]);
+
+  // Official Contact Information (Synced for Customer & Admin)
+  const [officialContact, setOfficialContact] = useState<OfficialContactInfo>(() => {
+    const saved = localStorage.getItem('hb_official_contact');
+    return saved ? JSON.parse(saved) : DEFAULT_OFFICIAL_CONTACT;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('hb_official_contact', JSON.stringify(officialContact));
+  }, [officialContact]);
+
+  const updateOfficialContact = (updated: Partial<OfficialContactInfo>) => {
+    setOfficialContact((prev) => ({ ...prev, ...updated }));
+    showToast(language === 'bn' ? 'অফিশিয়াল যোগাযোগ তথ্য সফলভাবে হালনাগাদ হয়েছে' : 'Official contact information updated');
+  };
 
   // Returns
   const [returns, setReturns] = useState<ReturnRequest[]>(() => {
@@ -501,6 +561,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getOrderById,
         customer,
         updateCustomerProfile,
+        isLoggedIn,
+        login,
+        logout,
+        officialContact,
+        updateOfficialContact,
         returns,
         submitReturnRequest,
         reviews,

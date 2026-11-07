@@ -125,7 +125,7 @@ export const ProductDetailsPage: React.FC = () => {
             )}
             {/* Subtle logo behind image */}
             <div className="absolute inset-0 pointer-events-none opacity-5 flex items-center justify-center">
-              <img src="/assets/haat_bazar_logo_solid.png" alt="" className="w-2/3" />
+              <img src="/assets/haat_bazar_official_logo.png" alt="" className="w-2/3" />
             </div>
           </div>
 

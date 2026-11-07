@@ -29,7 +29,7 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { Phone, Mail, ShieldCheck, Heart, MapPin } from 'lucide-react';
 
 const Footer: React.FC = () => {
-  const { navigateTo, language } = useShop();
+  const { navigateTo, language, officialContact } = useShop();
 
   return (
     <footer className="bg-white border-t border-gray-200 mt-12 mb-16 text-xs text-gray-600">
@@ -38,11 +38,11 @@ const Footer: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
           <div className="cursor-pointer" onClick={() => navigateTo('home')}>
             <img
-              src="/assets/haat_bazar_logo_solid.png"
+              src="/assets/haat_bazar_official_logo.png"
               alt="Haat Bazar"
               className="h-10 w-auto object-contain"
               onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
+                (e.target as HTMLImageElement).src = '/assets/haat_bazar_logo.png';
               }}
             />
           </div>
@@ -50,8 +50,8 @@ const Footer: React.FC = () => {
             <p>দেশীয় পণ্য গ্রহণ করুন, নিজের স্বাস্থ্য ও পরিবারকে সুস্থ রাখুন।</p>
             <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[#007A3D] font-bold mt-0.5">
               <Phone className="w-3.5 h-3.5" />
-              <a href="tel:+8801700123456" className="hover:underline">
-                হটলাইন: +880 1700-123456
+              <a href={`tel:${officialContact.hotline.replace(/\s+/g, '')}`} className="hover:underline">
+                হটলাইন: {officialContact.hotline}
               </a>
             </div>
           </div>

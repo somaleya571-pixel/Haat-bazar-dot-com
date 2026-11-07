@@ -47,37 +47,18 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* 1. TRUST BADGE PILL (Matches exact user mobile screenshot) */}
-      <div className="max-w-xl sm:max-w-2xl mx-auto flex items-center justify-between sm:justify-center gap-2 sm:gap-6 px-3.5 sm:px-5 py-2 bg-white rounded-full border border-emerald-500/30 shadow-2xs text-[11px] sm:text-xs font-bold text-gray-800">
-        <span className="flex items-center gap-1.5 text-emerald-900">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <ShieldCheck className="w-3.5 h-3.5 text-[#007A3D] shrink-0" />
-          <span>নির্ভরযোগ্য পণ্য</span>
-        </span>
-        <span className="text-gray-300">|</span>
-        <span className="flex items-center gap-1.5 text-emerald-900">
-          <span className="shrink-0 text-sm leading-none">🛒</span>
-          <span>সাশ্রয়ী দাম</span>
-        </span>
-        <span className="text-gray-300">|</span>
-        <span className="flex items-center gap-1.5 text-emerald-900">
-          <Truck className="w-3.5 h-3.5 text-[#007A3D] shrink-0" />
-          <span>দ্রুত ডেলিভারি</span>
-        </span>
-      </div>
-
-      {/* 2. COMPACT & FULLY VISIBLE HOMEPAGE BANNER WITH MULTICOLOR SLOGAN */}
+      {/* 1. COMPACT & FULL COVER HOMEPAGE BANNER WITH MULTICOLOR SLOGAN */}
       <section className="max-w-xl sm:max-w-2xl mx-auto w-full relative overflow-hidden rounded-2xl sm:rounded-3xl border border-emerald-500/25 shadow-xs bg-white">
-        {/* Banner Image: 100% fully visible (no cropping) at a neat, compact size */}
+        {/* Banner Image: Seamlessly covers the entire banner box area edge-to-edge */}
         <div
-          className="relative w-full cursor-pointer bg-emerald-50/20 flex items-center justify-center p-1 sm:p-2"
+          className="relative w-full cursor-pointer overflow-hidden block"
           onClick={() => navigateTo('categories')}
           title="হাট বাজার - পণ্য দেখুন"
         >
           <img
             src="/assets/haat_bazar_banner.png"
             alt="হাট বাজার ডট কম - Haat Bazar.com"
-            className="w-full max-h-48 sm:max-h-60 md:max-h-64 object-contain rounded-xl sm:rounded-2xl transition-transform duration-300 hover:scale-[1.01]"
+            className="w-full h-auto object-cover block transition-transform duration-300 hover:scale-[1.01]"
             loading="eager"
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/assets/aistudio/Bangladeshi_Marketplace_Grocery_Banner_af4d101b.png';
@@ -86,7 +67,7 @@ export const HomePage: React.FC = () => {
         </div>
 
         {/* Text Area: Exact Multicolor Slogan + Action Buttons Directly Underneath */}
-        <div className="bg-gradient-to-b from-white to-emerald-50/50 border-t border-emerald-100/80 px-3 sm:px-4 py-2 sm:py-2.5 flex flex-col items-center justify-center text-center gap-2">
+        <div className="bg-gradient-to-b from-white to-emerald-50/50 border-t border-emerald-100/80 px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col items-center justify-center text-center gap-2">
           {/* Exact Multicolor Gradient Slogan as requested */}
           <h2 className="font-black text-xs sm:text-sm md:text-base tracking-tight leading-snug">
             <span className="bg-gradient-to-r from-[#007A3D] via-teal-600 to-amber-600 bg-clip-text text-transparent">
@@ -121,7 +102,7 @@ export const HomePage: React.FC = () => {
         {/* Subtle Watermark Logo Background from Screenshot */}
         <div
           className="absolute inset-0 pointer-events-none opacity-[0.035] bg-center bg-no-repeat bg-contain"
-          style={{ backgroundImage: `url('/assets/haat_bazar_logo_solid.png')` }}
+          style={{ backgroundImage: `url('/assets/haat_bazar_official_logo.png')` }}
           aria-hidden="true"
         />
 

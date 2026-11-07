@@ -27,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
     notifications,
     searchQuery,
     setSearchQuery,
+    officialContact,
   } = useShop();
 
   const [inputVal, setInputVal] = useState(searchQuery);
@@ -46,16 +47,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
       <div className="bg-[#007A3D] text-white px-3 sm:px-6 py-1.5 text-xs font-medium flex items-center justify-between">
         <div className="flex items-center gap-2">
           <a
-            href="tel:+8801700123456"
+            href={`tel:${officialContact.hotline.replace(/\s+/g, '')}`}
             className="flex items-center gap-1.5 hover:underline font-semibold focus:outline-hidden"
             title="কল করতে ক্লিক করুন"
           >
             <Phone className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
-            <span>হটলাইন: <strong>+880 1700-123456</strong></span>
+            <span>হটলাইন: <strong>{officialContact.hotline}</strong></span>
           </a>
           <span className="hidden md:inline text-emerald-200">|</span>
           <span className="hidden md:inline text-emerald-100">
-            {language === 'bn' ? 'সকাল ৮টা - রাত ১১টা' : '8:00 AM - 11:00 PM'}
+            {language === 'bn' ? officialContact.supportHours : '8:00 AM - 11:00 PM'}
           </span>
         </div>
 
@@ -84,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 space-y-2">
-        {/* ROW 1: Search Bar & Admin / Language Pills (Matches approved mockup) */}
+        {/* ROW 1: Search Bar & Language Pill (Admin Dashboard completely removed from customer view as requested) */}
         <div className="flex flex-col sm:flex-row items-center gap-2">
           {/* Search Bar */}
           <form onSubmit={handleSearchSubmit} className="relative w-full flex-1">
@@ -117,17 +118,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
             </button>
           </form>
 
-          {/* Quick Access Badges (Admin Dashboard & Language) */}
+          {/* Language Switcher */}
           <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-            <button
-              onClick={() => navigateTo('admin-dashboard')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#003822] text-white hover:bg-[#002717] transition-all shadow-xs"
-              title="Open Admin Dashboard"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Admin Dashboard</span>
-            </button>
-
             <button
               onClick={toggleLanguage}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#007A3D]/40 text-gray-800 hover:border-[#007A3D] hover:text-[#007A3D] transition-colors bg-white shadow-2xs"
@@ -139,38 +131,25 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
           </div>
         </div>
 
-        {/* ROW 2: Three Lines (Hamburger Menu) on Left + Haat Bazar Logo, Wishlist/Cart on Right */}
+        {/* ROW 2: Haat Bazar Logo on Left, Wishlist, Cart & Hamburger Menu on Right */}
         <div className="flex items-center justify-between pt-1 border-t border-gray-100">
-          {/* Left: Three Lines Menu Button + Haat Bazar Official Logo */}
-          <div className="flex items-center gap-2.5">
-            {/* Three-Line Menu Button (Left-aligned as requested: "3 ডট না দিয়ে থ্রি লাইনস করে দেবো এটা মত থাকবে বাঁ দিকে পেজের") */}
-            <button
-              onClick={onOpenDrawer}
-              className="p-2 rounded-xl border border-gray-200 text-gray-800 hover:text-[#007A3D] hover:border-[#007A3D] hover:bg-emerald-50/60 transition-colors bg-white shadow-2xs flex items-center justify-center cursor-pointer"
-              title="মেনু (Navigation Menu)"
-              aria-label="Navigation Menu"
-            >
-              <Menu className="w-5 h-5 text-gray-900" />
-            </button>
-
-            {/* Official Logo */}
-            <div
-              onClick={() => navigateTo('home')}
-              className="cursor-pointer flex items-center gap-2 shrink-0 select-none py-0.5"
-              title="Haat Bazar Home"
-            >
-              <img
-                src="/assets/haat_bazar_logo_solid.png"
-                alt="হাট বাজার ডট কম - Haat Bazar.com"
-                className="h-9 sm:h-12 w-auto object-contain transition-transform hover:scale-102"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
-            </div>
+          {/* Left: Official Haat Bazar Logo */}
+          <div
+            onClick={() => navigateTo('home')}
+            className="cursor-pointer flex items-center gap-2 shrink-0 select-none py-0.5"
+            title="Haat Bazar Home"
+          >
+            <img
+              src="/assets/haat_bazar_official_logo.png"
+              alt="হাট বাজার ডট কম - Haat Bazar.com"
+              className="h-9 sm:h-11 md:h-12 w-auto object-contain transition-transform hover:scale-102"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/assets/haat_bazar_logo.png';
+              }}
+            />
           </div>
 
-          {/* Right: Wishlist & Cart */}
+          {/* Right: Wishlist, Cart & Three-Line Hamburger Menu */}
           <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Wishlist Button */}
             <button
@@ -204,6 +183,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
                   {cartItemCount}
                 </span>
               )}
+            </button>
+
+            {/* Three-Line Hamburger Menu Button (Moved to right side of header as requested) */}
+            <button
+              onClick={onOpenDrawer}
+              className="p-2 sm:px-3 sm:py-2 rounded-xl border border-gray-200 text-gray-800 hover:text-[#007A3D] hover:border-[#007A3D] hover:bg-emerald-50/60 transition-all bg-white shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              title="মেনু (Navigation Menu)"
+              aria-label="Navigation Menu"
+            >
+              <Menu className="w-5 h-5 text-gray-900" />
+              <span className="hidden md:inline text-xs font-bold text-gray-800">মেনু</span>
             </button>
           </div>
         </div>

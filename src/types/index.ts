@@ -61,6 +61,18 @@ export interface CustomerAddress {
   isDefault: boolean;
 }
 
+export interface OfficialContactInfo {
+  hotline: string;
+  phone: string;
+  email: string;
+  gmail: string;
+  whatsapp: string;
+  supportHours: string;
+  officeAddress: string;
+  tradeLicense: string;
+  ecabNo: string;
+}
+
 export interface CustomerInfo {
   name: string;
   phone: string;

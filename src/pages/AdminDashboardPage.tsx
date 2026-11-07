@@ -35,11 +35,34 @@ export const AdminDashboardPage: React.FC = () => {
     showToast,
     theme,
     setTheme,
+    officialContact,
+    updateOfficialContact,
   } = useShop();
 
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'customers' | 'settings'>('products');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
+
+  // Official Contact Admin Form States (Synced with Customer Panel)
+  const [adminHotline, setAdminHotline] = useState(officialContact.hotline);
+  const [adminGmail, setAdminGmail] = useState(officialContact.gmail);
+  const [adminEmail, setAdminEmail] = useState(officialContact.email);
+  const [adminWhatsapp, setAdminWhatsapp] = useState(officialContact.whatsapp);
+  const [adminSupportHours, setAdminSupportHours] = useState(officialContact.supportHours);
+  const [adminOfficeAddress, setAdminOfficeAddress] = useState(officialContact.officeAddress);
+
+  const handleSaveContactSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateOfficialContact({
+      hotline: adminHotline,
+      phone: adminHotline,
+      gmail: adminGmail,
+      email: adminEmail,
+      whatsapp: adminWhatsapp,
+      supportHours: adminSupportHours,
+      officeAddress: adminOfficeAddress,
+    });
+  };
 
   // Handle product edit form submission
   const handleSaveProduct = (e: React.FormEvent) => {
@@ -650,6 +673,102 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Official Contact & Customer Support Settings (Directly Syncs to Customer Panel) */}
+            <div className="pt-5 border-t border-gray-100 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-sm text-gray-900">অফিশিয়াল যোগাযোগ ও সাপোর্ট নিয়ন্ত্রণ (Customer Panel Sync)</h4>
+                  <p className="text-xs text-gray-500">এখানে পরিবর্তন করলে কাস্টমার প্রোফাইল, হেডার হটলাইন ও অফিস তথ্যে তাৎক্ষণিক আপডেট হবে</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveContactSettings} className="space-y-4 bg-gray-50/70 p-4 rounded-2xl border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">অফিশিয়াল হটলাইন নম্বর</label>
+                    <input
+                      type="text"
+                      value={adminHotline}
+                      onChange={(e) => setAdminHotline(e.target.value)}
+                      placeholder="+880 1700-123456"
+                      className="w-full p-2.5 rounded-xl border border-gray-300 focus:border-[#007A3D] font-mono outline-hidden bg-white"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">অফিশিয়াল জিমেইল অ্যাড্রেস</label>
+                    <input
+                      type="email"
+                      value={adminGmail}
+                      onChange={(e) => setAdminGmail(e.target.value)}
+                      placeholder="haatbazar.official@gmail.com"
+                      className="w-full p-2.5 rounded-xl border border-gray-300 focus:border-[#007A3D] font-mono outline-hidden bg-white"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">কর্পোরেট ইমেইল</label>
+                    <input
+                      type="email"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      placeholder="official@hadbazar.com"
+                      className="w-full p-2.5 rounded-xl border border-gray-300 focus:border-[#007A3D] font-mono outline-hidden bg-white"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">হোয়াটসঅ্যাপ সাপোর্ট নম্বর</label>
+                    <input
+                      type="text"
+                      value={adminWhatsapp}
+                      onChange={(e) => setAdminWhatsapp(e.target.value)}
+                      placeholder="+880 1700-123456"
+                      className="w-full p-2.5 rounded-xl border border-gray-300 focus:border-[#007A3D] font-mono outline-hidden bg-white"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">সাপোর্ট অপারেটিং সময়</label>
+                    <input
+                      type="text"
+                      value={adminSupportHours}
+                      onChange={(e) => setAdminSupportHours(e.target.value)}
+                      placeholder="সকাল ৮:০০টা - রাত ১১:০০টা (প্রতিদিন)"
+                      className="w-full p-2.5 rounded-xl border border-gray-300 focus:border-[#007A3D] outline-hidden bg-white"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">প্রধান করপোরেট হেডকোয়ার্টার ঠিকানা</label>
+                    <input
+                      type="text"
+                      value={adminOfficeAddress}
+                      onChange={(e) => setAdminOfficeAddress(e.target.value)}
+                      placeholder="বাড়ি #৪২, রোড #০৭, সেক্টর #৩, উত্তরা, ঢাকা"
+                      className="w-full p-2.5 rounded-xl border border-gray-300 focus:border-[#007A3D] outline-hidden bg-white"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-[#007A3D] hover:bg-[#006030] text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>সংরক্ষণ ও কাস্টমার প্যানেলে সিঙ্ক করুন</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
             {/* General Information */}
             <div className="pt-4 border-t border-gray-100 space-y-2">
               <h4 className="font-bold text-xs text-gray-700">ওয়েবসাইট কনফিগারেশন:</h4>
@@ -660,11 +779,11 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-200/80">
                   <span className="text-gray-500 text-[11px]">হটলাইন সংযোগ:</span>
-                  <p className="font-bold text-emerald-700 font-mono mt-0.5">+880 1700-123456</p>
+                  <p className="font-bold text-emerald-700 font-mono mt-0.5">{officialContact.hotline}</p>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-200/80">
-                  <span className="text-gray-500 text-[11px]">মার্কেটপ্লেস স্ট্যাটাস:</span>
-                  <p className="font-bold text-emerald-600 mt-0.5">● লাইভ ও সক্রিয়</p>
+                  <span className="text-gray-500 text-[11px]">অফিশিয়াল জিমেইল:</span>
+                  <p className="font-bold text-rose-600 font-mono mt-0.5">{officialContact.gmail}</p>
                 </div>
               </div>
             </div>

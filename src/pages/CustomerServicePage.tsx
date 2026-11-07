@@ -14,7 +14,7 @@ import {
 import { useShop } from '../context/ShopContext';
 
 export const CustomerServicePage: React.FC = () => {
-  const { customer, navigateTo, language, showToast } = useShop();
+  const { customer, navigateTo, language, showToast, officialContact } = useShop();
 
   const [topic, setTopic] = useState('Order Problems');
   const [subject, setSubject] = useState('');
@@ -64,16 +64,16 @@ export const CustomerServicePage: React.FC = () => {
             সরাসরি হটলাইন সাপোর্ট
           </span>
           <h2 className="text-2xl font-black text-yellow-300 font-mono tracking-wide">
-            +880 1700-123456
+            {officialContact.hotline}
           </h2>
           <p className="text-xs text-emerald-100">
-            প্রতিদিন সকাল ৮:০০ টা থেকে রাত ১১:০০ টা পর্যন্ত খোলা
+            {officialContact.supportHours}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <a
-            href="tel:+8801700123456"
+            href={`tel:${officialContact.hotline.replace(/\s+/g, '')}`}
             className="px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2"
           >
             <PhoneCall className="w-4 h-4" />
@@ -81,7 +81,7 @@ export const CustomerServicePage: React.FC = () => {
           </a>
 
           <a
-            href="https://wa.me/8801700123456"
+            href={`https://wa.me/${officialContact.whatsapp.replace(/[^0-9]/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"

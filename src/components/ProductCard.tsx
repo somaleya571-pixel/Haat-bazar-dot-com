@@ -65,7 +65,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Subtle watermark logo behind product images */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center">
           <img
-            src="/assets/haat_bazar_logo_solid.png"
+            src="/assets/haat_bazar_official_logo.png"
             alt=""
             className="w-3/4 object-contain"
           />
