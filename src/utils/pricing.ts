@@ -58,6 +58,93 @@ export interface CartCalculationResult {
   freeDeliveryThreshold: number;
 }
 
+export interface DeliveryCalculationParams {
+  courier: {
+    insideDhakaRate: number;
+    outsideDhakaRate: number;
+    baseWeightKg?: number;
+    additionalPerKg?: number;
+    estimatedDaysInside?: string;
+    estimatedDaysOutside?: string;
+    restrictedDistricts?: string[];
+    districtOverrides?: Record<string, number>;
+    isActive: boolean;
+  };
+  district: string;
+  weightKg?: number;
+  subtotal?: number;
+  freeDeliveryThreshold?: number;
+}
+
+export function calculateCourierDeliveryCharge({
+  courier,
+  district,
+  weightKg = 1,
+  subtotal = 0,
+  freeDeliveryThreshold = 2000,
+}: DeliveryCalculationParams): {
+  charge: number;
+  isAvailable: boolean;
+  isFree: boolean;
+  estimatedDays: string;
+  baseCharge: number;
+  extraWeightCharge: number;
+} {
+  const isDhaka = !district || district.trim().toLowerCase() === 'dhaka';
+
+  // Check if courier is active and covers this district
+  if (!courier.isActive) {
+    return {
+      charge: 0,
+      isAvailable: false,
+      isFree: false,
+      estimatedDays: 'N/A',
+      baseCharge: 0,
+      extraWeightCharge: 0,
+    };
+  }
+
+  if (courier.restrictedDistricts && courier.restrictedDistricts.includes(district)) {
+    return {
+      charge: 0,
+      isAvailable: false,
+      isFree: false,
+      estimatedDays: 'সার্ভিস প্রযোজ্য নয় (Not Available)',
+      baseCharge: 0,
+      extraWeightCharge: 0,
+    };
+  }
+
+  // Base rate (check district override first, then inside vs outside Dhaka)
+  let baseCharge = isDhaka ? courier.insideDhakaRate : courier.outsideDhakaRate;
+  if (courier.districtOverrides && courier.districtOverrides[district]) {
+    baseCharge = courier.districtOverrides[district];
+  }
+
+  // Weight calculation
+  const baseWeight = courier.baseWeightKg || 1;
+  const additionalRate = courier.additionalPerKg || 0;
+  const extraKg = Math.max(0, weightKg - baseWeight);
+  const extraWeightCharge = Math.ceil(extraKg) * additionalRate;
+
+  const totalCalculated = baseCharge + extraWeightCharge;
+  const isFree = freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold;
+  const finalCharge = isFree ? 0 : totalCalculated;
+
+  const estimatedDays = isDhaka
+    ? courier.estimatedDaysInside || '১২-২৪ ঘণ্টা'
+    : courier.estimatedDaysOutside || '৪৮-৭২ ঘণ্টা';
+
+  return {
+    charge: finalCharge,
+    isAvailable: true,
+    isFree,
+    estimatedDays,
+    baseCharge,
+    extraWeightCharge,
+  };
+}
+
 export function calculateCartTotals(
   items: Array<{ price: number; quantity: number }>,
   deliveryZone: 'inside_dhaka' | 'outside_dhaka' = 'inside_dhaka',

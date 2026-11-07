@@ -1,14 +1,10 @@
 import React, { useState } from 'react';
 import {
   ArrowLeft,
-  ShieldCheck,
-  CreditCard,
   Truck,
-  CheckCircle,
-  AlertCircle,
   Lock,
   MapPin,
-  ExternalLink,
+  Ticket,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { SearchableDropdown } from '../components/SearchableDropdown';
@@ -17,8 +13,9 @@ import {
   getUpazilas,
   getThanas,
   validateDeliveryAddress,
+  isInsideDhaka,
 } from '../utils/location';
-import { formatCurrency, calculateEffectivePrice } from '../utils/pricing';
+import { formatCurrency, calculateEffectivePrice, calculateCourierDeliveryCharge } from '../utils/pricing';
 
 export const CheckoutPage: React.FC = () => {
   const {
@@ -30,6 +27,13 @@ export const CheckoutPage: React.FC = () => {
     navigateTo,
     language,
     showToast,
+    couriers,
+    paymentSettings,
+    officialContact,
+    websiteSettings,
+    activeCoupon,
+    applyCoupon,
+    removeCoupon,
   } = useShop();
 
   // Customer Contact Fields
@@ -44,10 +48,22 @@ export const CheckoutPage: React.FC = () => {
   const [village, setVillage] = useState(customer.village || 'Road 8/A');
   const [addressDetails, setAddressDetails] = useState(customer.addressDetails || 'House 34, Flat 5A');
 
+  // Active Couriers
+  const activeCouriers = couriers.filter((c) => c.isActive);
+  const [selectedCourierId, setSelectedCourierId] = useState<string>(
+    activeCouriers[0]?.id || 'cr-1'
+  );
+  const selectedCourier = couriers.find((c) => c.id === selectedCourierId) || couriers[0];
+
   // Payment Method
-  const [paymentMethod, setPaymentMethod] = useState<'Cash on Delivery' | 'bKash' | 'Nagad'>('Cash on Delivery');
+  const [paymentMethod, setPaymentMethod] = useState<'Cash on Delivery' | 'bKash' | 'Nagad'>(
+    paymentSettings.codEnabled ? 'Cash on Delivery' : 'bKash'
+  );
   const [bKashNumber, setBKashNumber] = useState(customer.phone || '');
   const [trxId, setTrxId] = useState('');
+
+  // Coupon Input
+  const [couponInput, setCouponInput] = useState('');
 
   // Form Validation Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -71,6 +87,30 @@ export const CheckoutPage: React.FC = () => {
     setUpazila(u);
     const newThanas = getThanas(district, u);
     setThana(newThanas[0] || '');
+  };
+
+  // Compute total weight
+  const totalCartWeightKg = cart.reduce((sum, item) => sum + (item.quantity * 0.5), 0.5);
+
+  // Dynamic courier delivery charge
+  const courierCalculation = calculateCourierDeliveryCharge({
+    courier: selectedCourier,
+    district,
+    weightKg: totalCartWeightKg,
+    subtotal: cartTotals.subtotal,
+    freeDeliveryThreshold: websiteSettings.freeDeliveryThreshold,
+  });
+
+  const calculatedFreight = courierCalculation.charge;
+  const finalOrderTotal = Math.max(0, cartTotals.subtotal + calculatedFreight - (cartTotals.couponDiscount || 0));
+
+  const handleApplyCoupon = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponInput.trim()) return;
+    const success = applyCoupon(couponInput.trim());
+    if (success) {
+      setCouponInput('');
+    }
   };
 
   const handleSubmitOrder = (e: React.FormEvent) => {
@@ -115,8 +155,8 @@ export const CheckoutPage: React.FC = () => {
       if (!bKashNumber.trim() || !/^01[3-9]\d{8}$/.test(bKashNumber.trim().replace(/\D/g, ''))) {
         newErrors.bKashNumber = `${paymentMethod} নম্বর প্রদান আবশ্যক (১১ সংখ্যা)`;
       }
-      if (!trxId.trim() || trxId.trim().length < 8) {
-        newErrors.trxId = 'সঠিক ট্রানজেকশন আইডি (TrxID) প্রদান করুন (কমপক্ষে ৮ অক্ষর)';
+      if (!trxId.trim() || trxId.trim().length < 6) {
+        newErrors.trxId = 'সঠিক ট্রানজেকশন আইডি (TrxID) প্রদান করুন';
       }
     }
 
@@ -162,7 +202,7 @@ export const CheckoutPage: React.FC = () => {
     const paymentStatus =
       paymentMethod === 'Cash on Delivery'
         ? 'Cash on Delivery'
-        : 'Pending Verification'; // Strictly follow requirement: Do not claim payment is successful until verified!
+        : 'Pending Verification';
 
     const createdOrder = placeOrder({
       customer: {
@@ -177,12 +217,14 @@ export const CheckoutPage: React.FC = () => {
       },
       items: orderItems,
       subtotal: cartTotals.subtotal,
-      deliveryCharge: cartTotals.deliveryCharge,
-      totalAmount: cartTotals.total,
+      deliveryCharge: calculatedFreight,
+      totalAmount: finalOrderTotal,
       paymentMethod,
       paymentStatus,
       bKashNumber: paymentMethod !== 'Cash on Delivery' ? bKashNumber : undefined,
       trxId: paymentMethod !== 'Cash on Delivery' ? trxId : undefined,
+      assignedCourierId: selectedCourier.id,
+      assignedCourierName: selectedCourier.name,
     });
 
     setTimeout(() => {
@@ -216,10 +258,10 @@ export const CheckoutPage: React.FC = () => {
 
         <button
           onClick={() => navigateTo('delivery-address')}
-          className="text-xs font-bold text-[#007A3D] bg-emerald-50 px-3 py-1.5 rounded-full border border-[#007A3D]/20 hover:bg-emerald-100 transition-colors flex items-center gap-1"
+          className="text-xs font-bold text-[#006B35] bg-emerald-50 px-3 py-1.5 rounded-full border border-[#006B35]/20 hover:bg-emerald-100 transition-colors flex items-center gap-1"
         >
           <MapPin className="w-3.5 h-3.5" />
-          <span>ঠিকানা পেজ (Page 08)</span>
+          <span>ঠিকানা পেজ</span>
         </button>
       </div>
 
@@ -229,7 +271,7 @@ export const CheckoutPage: React.FC = () => {
           {/* Section 1: Customer Contact Info */}
           <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-xs space-y-4">
             <h2 className="font-bold text-sm text-gray-900 border-b border-gray-100 pb-2.5 flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-[#007A3D] text-white text-xs flex items-center justify-center font-mono">
+              <span className="w-5 h-5 rounded-full bg-[#006B35] text-white text-xs flex items-center justify-center font-mono">
                 1
               </span>
               <span>{language === 'bn' ? 'গ্রাহকের ব্যক্তিগত তথ্য (Customer Information)' : 'Customer Info'}</span>
@@ -247,7 +289,7 @@ export const CheckoutPage: React.FC = () => {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="যেমন: মোঃ সাহাবুল ইসলাম"
                   className={`w-full px-3 py-2 rounded-xl border ${
-                    errors.name ? 'border-rose-400 ring-2 ring-rose-100' : 'border-gray-300 focus:border-[#007A3D]'
+                    errors.name ? 'border-rose-400 ring-2 ring-rose-100' : 'border-gray-300 focus:border-[#006B35]'
                   }`}
                 />
                 {errors.name && <p className="text-[11px] text-rose-500">{errors.name}</p>}
@@ -264,7 +306,7 @@ export const CheckoutPage: React.FC = () => {
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="017XXXXXXXX"
                   className={`w-full px-3 py-2 rounded-xl border ${
-                    errors.phone ? 'border-rose-400 ring-2 ring-rose-100' : 'border-gray-300 focus:border-[#007A3D]'
+                    errors.phone ? 'border-rose-400 ring-2 ring-rose-100' : 'border-gray-300 focus:border-[#006B35]'
                   }`}
                 />
                 {errors.phone && <p className="text-[11px] text-rose-500">{errors.phone}</p>}
@@ -281,7 +323,7 @@ export const CheckoutPage: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="example@gmail.com"
                   className={`w-full px-3 py-2 rounded-xl border ${
-                    errors.email ? 'border-rose-400 ring-2 ring-rose-100' : 'border-gray-300 focus:border-[#007A3D]'
+                    errors.email ? 'border-rose-400 ring-2 ring-rose-100' : 'border-gray-300 focus:border-[#006B35]'
                   }`}
                 />
                 {errors.email && <p className="text-[11px] text-rose-500">{errors.email}</p>}
@@ -289,14 +331,14 @@ export const CheckoutPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Section 2: Exact Cascading Delivery Address (PAGE 08 Requirements Integrated) */}
+          {/* Section 2: Exact Cascading Delivery Address */}
           <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
               <h2 className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-[#007A3D] text-white text-xs flex items-center justify-center font-mono">
+                <span className="w-5 h-5 rounded-full bg-[#006B35] text-white text-xs flex items-center justify-center font-mono">
                   2
                 </span>
-                <span>{language === 'bn' ? 'ডেলিভারি ঠিকানা (Cascading Searchable Address)' : 'Delivery Address'}</span>
+                <span>{language === 'bn' ? 'ডেলিভারি ঠিকানা (বাংলাদেশ ৬৪ জেলা)' : 'Delivery Address'}</span>
               </h2>
               <span className="text-[11px] text-gray-400">প্রতিটি ফিল্ড বাধ্যতামূলক</span>
             </div>
@@ -351,7 +393,7 @@ export const CheckoutPage: React.FC = () => {
                   onChange={(e) => setVillage(e.target.value)}
                   placeholder="গ্রাম বা এলাকার নাম..."
                   className={`w-full px-3 py-2 rounded-xl border ${
-                    errors.village ? 'border-rose-400 ring-2 ring-rose-100' : 'border-gray-300 focus:border-[#007A3D]'
+                    errors.village ? 'border-rose-400 ring-2 ring-rose-100' : 'border-gray-300 focus:border-[#006B35]'
                   }`}
                 />
                 {errors.village && <p className="text-[11px] text-rose-500">{errors.village}</p>}
@@ -368,7 +410,7 @@ export const CheckoutPage: React.FC = () => {
                   onChange={(e) => setAddressDetails(e.target.value)}
                   placeholder="বাড়ি নং, ফ্ল্যাট নং, রোডের নাম বা ল্যান্ডমার্ক..."
                   className={`w-full px-3 py-2 rounded-xl border ${
-                    errors.addressDetails ? 'border-rose-400 ring-2 ring-rose-100' : 'border-gray-300 focus:border-[#007A3D]'
+                    errors.addressDetails ? 'border-rose-400 ring-2 ring-rose-100' : 'border-gray-300 focus:border-[#006B35]'
                   }`}
                 />
                 {errors.addressDetails && (
@@ -378,78 +420,134 @@ export const CheckoutPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Section 3: Payment Method Selection */}
+          {/* Section 3: Courier Service Selection */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
+              <h2 className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-[#006B35] text-white text-xs flex items-center justify-center font-mono">
+                  3
+                </span>
+                <span>{language === 'bn' ? 'কুরিয়ার ডেলিভারি সার্ভিস নির্বাচন' : 'Select Courier Service'}</span>
+              </h2>
+              <span className="text-[11px] text-[#006B35] font-semibold">
+                {isInsideDhaka(district) ? 'ঢাকার ভেতর' : 'ঢাকার বাইরে'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {activeCouriers.map((cr) => {
+                const res = calculateCourierDeliveryCharge({
+                  courier: cr,
+                  district,
+                  weightKg: totalCartWeightKg,
+                  subtotal: cartTotals.subtotal,
+                  freeDeliveryThreshold: websiteSettings.freeDeliveryThreshold,
+                });
+                const isSelected = cr.id === selectedCourierId;
+                const estimatedDays = isInsideDhaka(district) ? cr.estimatedDaysInside : cr.estimatedDaysOutside;
+
+                return (
+                  <div
+                    key={cr.id}
+                    onClick={() => setSelectedCourierId(cr.id)}
+                    className={`p-3 rounded-2xl border-2 cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-[#006B35] bg-[#E8F7EC]/50 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-xs text-[#17231B]">{cr.name}</h4>
+                      <Truck className={`w-4 h-4 ${isSelected ? 'text-[#006B35]' : 'text-slate-400'}`} />
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{estimatedDays}</p>
+                    <div className="mt-2 text-xs font-bold text-[#006B35]">
+                      {res.isFree ? 'ফ্রি ডেলিভারি' : `৳${res.charge}`}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 4: Payment Method Selection */}
           <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-xs space-y-4">
             <h2 className="font-bold text-sm text-gray-900 border-b border-gray-100 pb-2.5 flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-[#007A3D] text-white text-xs flex items-center justify-center font-mono">
-                3
+              <span className="w-5 h-5 rounded-full bg-[#006B35] text-white text-xs flex items-center justify-center font-mono">
+                4
               </span>
               <span>{language === 'bn' ? 'পেমেন্ট মেথড নির্বাচন (Payment Method)' : 'Select Payment Method'}</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Cash on Delivery */}
-              <label
-                className={`p-3.5 rounded-2xl border-2 flex items-center gap-3 cursor-pointer transition-all ${
-                  paymentMethod === 'Cash on Delivery'
-                    ? 'border-[#007A3D] bg-emerald-50/50 shadow-xs'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === 'Cash on Delivery'}
-                  onChange={() => setPaymentMethod('Cash on Delivery')}
-                  className="w-4 h-4 text-[#007A3D] accent-[#007A3D]"
-                />
-                <div>
-                  <h4 className="font-bold text-xs text-gray-900">ক্যাশ অন ডেলিভারি</h4>
-                  <p className="text-[10px] text-gray-500">পণ্য হাতে পেয়ে টাকা দিন</p>
-                </div>
-              </label>
+              {paymentSettings.codEnabled && (
+                <label
+                  className={`p-3.5 rounded-2xl border-2 flex items-center gap-3 cursor-pointer transition-all ${
+                    paymentMethod === 'Cash on Delivery'
+                      ? 'border-[#006B35] bg-[#E8F7EC]/50 shadow-xs'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked={paymentMethod === 'Cash on Delivery'}
+                    onChange={() => setPaymentMethod('Cash on Delivery')}
+                    className="w-4 h-4 text-[#006B35] accent-[#006B35]"
+                  />
+                  <div>
+                    <h4 className="font-bold text-xs text-gray-900">ক্যাশ অন ডেলিভারি</h4>
+                    <p className="text-[10px] text-gray-500">পণ্য হাতে পেয়ে টাকা দিন</p>
+                  </div>
+                </label>
+              )}
 
               {/* bKash Payment */}
-              <label
-                className={`p-3.5 rounded-2xl border-2 flex items-center gap-3 cursor-pointer transition-all ${
-                  paymentMethod === 'bKash'
-                    ? 'border-[#e2136e] bg-pink-50/40 shadow-xs'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === 'bKash'}
-                  onChange={() => setPaymentMethod('bKash')}
-                  className="w-4 h-4 text-[#e2136e] accent-[#e2136e]"
-                />
-                <div>
-                  <h4 className="font-bold text-xs text-[#e2136e]">বিকাশ (bKash)</h4>
-                  <p className="text-[10px] text-gray-500">মার্চেন্ট পেমেন্ট / সেন্ড মানি</p>
-                </div>
-              </label>
+              {paymentSettings.bKashEnabled && (
+                <label
+                  className={`p-3.5 rounded-2xl border-2 flex items-center gap-3 cursor-pointer transition-all ${
+                    paymentMethod === 'bKash'
+                      ? 'border-[#e2136e] bg-pink-50/40 shadow-xs'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked={paymentMethod === 'bKash'}
+                    onChange={() => setPaymentMethod('bKash')}
+                    className="w-4 h-4 text-[#e2136e] accent-[#e2136e]"
+                  />
+                  <div>
+                    <h4 className="font-bold text-xs text-[#e2136e]">বিকাশ (bKash)</h4>
+                    <p className="text-[10px] text-gray-500">{paymentSettings.bKashType}</p>
+                  </div>
+                </label>
+              )}
 
               {/* Nagad Payment */}
-              <label
-                className={`p-3.5 rounded-2xl border-2 flex items-center gap-3 cursor-pointer transition-all ${
-                  paymentMethod === 'Nagad'
-                    ? 'border-[#f7931e] bg-orange-50/40 shadow-xs'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === 'Nagad'}
-                  onChange={() => setPaymentMethod('Nagad')}
-                  className="w-4 h-4 text-[#f7931e] accent-[#f7931e]"
-                />
-                <div>
-                  <h4 className="font-bold text-xs text-[#f7931e]">নগদ (Nagad)</h4>
-                  <p className="text-[10px] text-gray-500">মার্চেন্ট পেমেন্ট</p>
-                </div>
-              </label>
+              {paymentSettings.nagadEnabled && (
+                <label
+                  className={`p-3.5 rounded-2xl border-2 flex items-center gap-3 cursor-pointer transition-all ${
+                    paymentMethod === 'Nagad'
+                      ? 'border-[#f7931e] bg-orange-50/40 shadow-xs'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked={paymentMethod === 'Nagad'}
+                    onChange={() => setPaymentMethod('Nagad')}
+                    className="w-4 h-4 text-[#f7931e] accent-[#f7931e]"
+                  />
+                  <div>
+                    <h4 className="font-bold text-xs text-[#f7931e]">নগদ (Nagad)</h4>
+                    <p className="text-[10px] text-gray-500">{paymentSettings.nagadType}</p>
+                  </div>
+                </label>
+              )}
             </div>
 
             {/* bKash / Nagad Transaction ID Input Box */}
@@ -457,10 +555,13 @@ export const CheckoutPage: React.FC = () => {
               <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200 space-y-3 text-xs animate-in fade-in duration-200">
                 <div className="p-3 bg-white rounded-xl border border-gray-200 space-y-1">
                   <span className="font-bold text-gray-800">
-                    {paymentMethod} মার্চেন্ট নম্বর: <strong className="text-[#007A3D] font-mono">01700-123456</strong>
+                    {paymentMethod} একাউন্ট নম্বর:{' '}
+                    <strong className="text-[#006B35] font-mono text-sm">
+                      {paymentMethod === 'bKash' ? paymentSettings.bKashNumber : paymentSettings.nagadNumber}
+                    </strong>
                   </span>
                   <p className="text-[11px] text-gray-500">
-                    উপরে উল্লেখিত নম্বরে ৳{cartTotals.total} টাকা পেমেন্ট সম্পন্ন করে নিচের বক্সে আপনার ব্যবহৃত নম্বর এবং ট্রানজেকশন আইডি (TrxID) লিখুন।
+                    {paymentMethod === 'bKash' ? paymentSettings.bKashInstructions : paymentSettings.nagadInstructions}
                   </p>
                 </div>
 
@@ -546,6 +647,42 @@ export const CheckoutPage: React.FC = () => {
               })}
             </div>
 
+            {/* Coupon Application Box */}
+            <div className="pt-2 border-t border-slate-100">
+              {activeCoupon ? (
+                <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
+                    <Ticket className="w-3.5 h-3.5" />
+                    <span>কুপন কোড: {activeCoupon.code}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeCoupon}
+                    className="text-rose-600 hover:text-rose-800 text-[11px] font-semibold"
+                  >
+                    মুছে ফেলুন
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="কুপন কোড (যেমন: HAAT100)"
+                    className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    className="px-3 py-1.5 bg-[#006B35] text-white rounded-lg text-xs font-bold"
+                  >
+                    প্রয়োগ
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Calculations */}
             <div className="space-y-2 text-xs border-t border-gray-100 pt-3">
               <div className="flex justify-between text-gray-600">
@@ -555,23 +692,30 @@ export const CheckoutPage: React.FC = () => {
                 </span>
               </div>
 
+              {cartTotals.couponDiscount > 0 && (
+                <div className="flex justify-between text-emerald-600 font-semibold">
+                  <span>কুপন ছাড় (Discount):</span>
+                  <span>- {formatCurrency(cartTotals.couponDiscount, language)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between text-gray-600">
-                <span>ডেলিভারি চার্জ:</span>
+                <span>কুরিয়ার ডেলিভারি ({selectedCourier.name}):</span>
                 <span
                   className={`font-bold ${
-                    cartTotals.deliveryCharge === 0 ? 'text-emerald-600' : 'text-gray-900'
+                    calculatedFreight === 0 ? 'text-emerald-600' : 'text-gray-900'
                   }`}
                 >
-                  {cartTotals.deliveryCharge === 0
+                  {calculatedFreight === 0
                     ? 'ফ্রি (FREE)'
-                    : formatCurrency(cartTotals.deliveryCharge, language)}
+                    : formatCurrency(calculatedFreight, language)}
                 </span>
               </div>
 
               <div className="pt-2 border-t border-gray-200 flex justify-between items-baseline">
                 <span className="font-black text-sm text-gray-900">সর্বমোট প্রদেয়:</span>
-                <span className="text-xl font-black text-[#007A3D]">
-                  {formatCurrency(cartTotals.total, language)}
+                <span className="text-xl font-black text-[#006B35]">
+                  {formatCurrency(finalOrderTotal, language)}
                 </span>
               </div>
             </div>
@@ -583,7 +727,7 @@ export const CheckoutPage: React.FC = () => {
               className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all ${
                 isSubmitting || cart.length === 0
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-[#007A3D] hover:bg-[#006030] text-white hover:shadow-lg active:scale-98'
+                  : 'bg-[#006B35] hover:bg-[#005228] text-white hover:shadow-lg active:scale-98'
               }`}
             >
               <Lock className="w-4 h-4" />
@@ -598,7 +742,7 @@ export const CheckoutPage: React.FC = () => {
 
             <div className="text-center text-[10px] text-gray-400 space-y-1 pt-1">
               <p>অর্ডার সাবমিট করার মাধ্যমে আপনি হাট বাজারের শর্তাবলীর সাথে সম্মত হচ্ছেন</p>
-              <p className="text-emerald-700 font-medium">২৪/৭ হটলাইন সহায়তা: +880 1700-123456</p>
+              <p className="text-[#006B35] font-medium">২৪/৭ হটলাইন সহায়তা: {officialContact.hotline}</p>
             </div>
           </div>
         </div>

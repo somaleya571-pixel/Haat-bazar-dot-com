@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { BrandLogo } from './BrandLogo';
 
 interface HeaderProps {
   onOpenDrawer: () => void;
@@ -133,21 +134,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
 
         {/* ROW 2: Haat Bazar Logo on Left, Wishlist, Cart & Hamburger Menu on Right */}
         <div className="flex items-center justify-between pt-1 border-t border-gray-100">
-          {/* Left: Official Haat Bazar Logo */}
-          <div
+          {/* Left: Replaceable Official Haat Bazar Logo */}
+          <BrandLogo
+            variant="header"
+            size="md"
             onClick={() => navigateTo('home')}
-            className="cursor-pointer flex items-center gap-2 shrink-0 select-none py-0.5"
-            title="Haat Bazar Home"
-          >
-            <img
-              src="/assets/haat_bazar_official_logo.png"
-              alt="হাট বাজার ডট কম - Haat Bazar.com"
-              className="h-9 sm:h-11 md:h-12 w-auto object-contain transition-transform hover:scale-102"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/assets/haat_bazar_logo.png';
-              }}
-            />
-          </div>
+            showSlogan
+          />
 
           {/* Right: Wishlist, Cart & Three-Line Hamburger Menu */}
           <div className="flex items-center gap-2 sm:gap-2.5">

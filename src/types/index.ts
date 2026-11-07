@@ -19,6 +19,24 @@ export type PageId =
   | 'privacy-terms'
   | 'admin-dashboard';
 
+export type AdminMenuTab =
+  | 'dashboard'
+  | 'products'
+  | 'orders'
+  | 'customers'
+  | 'sellers'
+  | 'couriers'
+  | 'coupons'
+  | 'reports'
+  | 'reviews'
+  | 'support'
+  | 'activity-logs'
+  | 'settings'
+  | 'website'
+  | 'profile';
+
+export type AdminRole = 'Super Admin' | 'Admin' | 'Sub-Admin' | 'Authorized Staff';
+
 export interface Product {
   id: string;
   name: string;
@@ -36,7 +54,10 @@ export interface Product {
   rating: number;
   reviewCount: number;
   image: string;
+  images?: string[];
   unit: string;
+  supplierName?: string;
+  isAvailable?: boolean;
   isFlashSale?: boolean;
   isPopular?: boolean;
   isNewArrival?: boolean;
@@ -74,6 +95,7 @@ export interface OfficialContactInfo {
 }
 
 export interface CustomerInfo {
+  id?: string;
   name: string;
   phone: string;
   email: string;
@@ -83,6 +105,9 @@ export interface CustomerInfo {
   village: string;
   addressDetails: string;
   avatar?: string;
+  status?: 'Active' | 'Suspended';
+  joinedDate?: string;
+  totalSpent?: number;
 }
 
 export interface OrderItem {
@@ -102,6 +127,18 @@ export interface TrackingStep {
   completed: boolean;
 }
 
+export type OrderStatus =
+  | 'New Order'
+  | 'Pending'
+  | 'Confirmed'
+  | 'Processing'
+  | 'Ready for Shipment'
+  | 'Shipped'
+  | 'Delivered'
+  | 'Cancelled'
+  | 'Return Requested'
+  | 'Refunded';
+
 export interface Order {
   id: string;
   date: string;
@@ -110,12 +147,140 @@ export interface Order {
   subtotal: number;
   deliveryCharge: number;
   totalAmount: number;
-  paymentMethod: 'Cash on Delivery' | 'bKash' | 'Nagad';
-  paymentStatus: 'Pending Verification' | 'Paid (Verified)' | 'Cash on Delivery';
-  status: 'Pending' | 'Order Confirmed' | 'Processing' | 'Shipped' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
+  paymentMethod: 'Cash on Delivery' | 'bKash' | 'Nagad' | 'Rocket';
+  paymentStatus: 'Pending Verification' | 'Paid (Verified)' | 'Cash on Delivery' | 'Refunded';
+  status: OrderStatus;
   trackingHistory: TrackingStep[];
+  assignedCourierId?: string;
+  assignedCourierName?: string;
+  courierTrackingCode?: string;
   bKashNumber?: string;
   trxId?: string;
+  notes?: string;
+}
+
+export interface CourierService {
+  id: string;
+  name: string;
+  nameBn: string;
+  code: string;
+  insideDhakaRate: number;
+  outsideDhakaRate: number;
+  baseWeightKg: number;
+  additionalPerKg: number;
+  estimatedDaysInside: string;
+  estimatedDaysOutside: string;
+  isCodAvailable: boolean;
+  isActive: boolean;
+  restrictedDistricts?: string[];
+  districtOverrides?: Record<string, number>;
+  notes?: string;
+}
+
+export interface Seller {
+  id: string;
+  name: string;
+  nameBn: string;
+  companyName: string;
+  phone: string;
+  email: string;
+  district: string;
+  rating: number;
+  totalSales: number;
+  totalOrders: number;
+  commissionRate: number; // percentage
+  status: 'Active' | 'Pending' | 'Suspended';
+  joinedDate: string;
+  productsCount: number;
+  bankOrBkashAccount?: string;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  title: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderValue: number;
+  maxDiscount?: number;
+  expiryDate: string;
+  usageLimit: number;
+  usedCount: number;
+  isActive: boolean;
+}
+
+export interface SupportTicketReply {
+  id: string;
+  sender: 'customer' | 'admin';
+  senderName: string;
+  message: string;
+  timestamp: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  category: 'Order' | 'Payment' | 'Delivery' | 'Return' | 'General';
+  priority: 'Low' | 'Medium' | 'High' | 'Urgent';
+  status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+  subject: string;
+  message: string;
+  orderId?: string;
+  createdAt: string;
+  updatedAt: string;
+  replies: SupportTicketReply[];
+}
+
+export interface ActivityLog {
+  id: string;
+  adminName: string;
+  adminRole: AdminRole;
+  action: string;
+  module: string;
+  recordId?: string;
+  details: string;
+  timestamp: string;
+  ipAddress?: string;
+}
+
+export interface PaymentSettings {
+  bKashNumber: string;
+  bKashType: 'Merchant' | 'Personal';
+  bKashEnabled: boolean;
+  bKashInstructions: string;
+  nagadNumber: string;
+  nagadType: 'Merchant' | 'Personal';
+  nagadEnabled: boolean;
+  nagadInstructions: string;
+  rocketNumber: string;
+  rocketEnabled: boolean;
+  codEnabled: boolean;
+  codRestrictedDistricts: string[];
+}
+
+export interface WebsiteSettings {
+  logoUrl: string;
+  heroBannerUrl: string;
+  announcementText: string;
+  announcementActive: boolean;
+  freeDeliveryThreshold: number;
+  allowPublicSellerRegistration: boolean;
+  footerNotice: string;
+  termsContent: string;
+  privacyContent: string;
+}
+
+export interface AdminProfile {
+  name: string;
+  email: string;
+  phone: string;
+  role: AdminRole;
+  avatar: string;
+  bio: string;
+  status: 'Online' | 'Offline' | 'Away';
+  lastLogin: string;
 }
 
 export interface ReturnRequest {
@@ -140,6 +305,8 @@ export interface ProductReview {
   date: string;
   comment: string;
   isVerifiedPurchase: boolean;
+  status?: 'Approved' | 'Pending' | 'Hidden';
+  adminReply?: string;
 }
 
 export interface AppNotification {

@@ -3,8 +3,9 @@ import { ShopProvider, useShop } from './context/ShopContext';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { NavigationDrawer } from './components/NavigationDrawer';
+import { BrandLogo } from './components/BrandLogo';
 
-// 18 Separate Pages
+// Customer Pages
 import { HomePage } from './pages/HomePage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { SearchResultsPage } from './pages/SearchResultsPage';
@@ -23,32 +24,27 @@ import { CustomerServicePage } from './pages/CustomerServicePage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { HelpCenterPage } from './pages/HelpCenterPage';
 import { PrivacyPolicyTermsPage } from './pages/PrivacyPolicyTermsPage';
+
+// Admin Panel
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 
-// Footer component
-import { Phone, Mail, ShieldCheck, Heart, MapPin } from 'lucide-react';
+// Footer component for Customer Storefront
+import { Phone, ShieldCheck } from 'lucide-react';
 
 const Footer: React.FC = () => {
-  const { navigateTo, language, officialContact } = useShop();
+  const { navigateTo, officialContact } = useShop();
 
   return (
     <footer className="bg-white border-t border-gray-200 mt-12 mb-16 text-xs text-gray-600">
       <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        {/* Brand: Logo only (removed duplicate text beside logo) */}
+        {/* Brand: Replaceable Logo Component */}
         <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
           <div className="cursor-pointer" onClick={() => navigateTo('home')}>
-            <img
-              src="/assets/haat_bazar_official_logo.png"
-              alt="Haat Bazar"
-              className="h-10 w-auto object-contain"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/assets/haat_bazar_logo.png';
-              }}
-            />
+            <BrandLogo size="md" showSlogan={false} />
           </div>
           <div className="text-[11px] text-gray-500">
             <p>দেশীয় পণ্য গ্রহণ করুন, নিজের স্বাস্থ্য ও পরিবারকে সুস্থ রাখুন।</p>
-            <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[#007A3D] font-bold mt-0.5">
+            <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[#006B35] font-bold mt-0.5">
               <Phone className="w-3.5 h-3.5" />
               <a href={`tel:${officialContact.hotline.replace(/\s+/g, '')}`} className="hover:underline">
                 হটলাইন: {officialContact.hotline}
@@ -57,14 +53,18 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Legal & Policy links only */}
+        {/* Legal & Policy links */}
         <div className="flex flex-wrap items-center justify-center gap-4 text-gray-500 text-[11px]">
-          <button onClick={() => navigateTo('privacy-terms')} className="hover:text-[#007A3D]">
+          <button onClick={() => navigateTo('privacy-terms')} className="hover:text-[#006B35]">
             গোপনীয়তা নীতি (Privacy Policy)
           </button>
           <span>•</span>
-          <button onClick={() => navigateTo('privacy-terms')} className="hover:text-[#007A3D]">
+          <button onClick={() => navigateTo('privacy-terms')} className="hover:text-[#006B35]">
             শর্তাবলী (Terms & Conditions)
+          </button>
+          <span>•</span>
+          <button onClick={() => navigateTo('admin-dashboard')} className="hover:text-[#006B35] font-semibold text-emerald-800">
+            অ্যাডমিন প্যানেল (Admin Panel)
           </button>
           <span>•</span>
           <span className="text-gray-400">© 2026 Haat Bazar. All rights reserved.</span>
@@ -78,7 +78,23 @@ const MainContent: React.FC = () => {
   const { currentPage, toastMessage } = useShop();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Router for 18 Separate Pages
+  // When viewing Admin Dashboard, render full screen Admin Panel
+  if (currentPage === 'admin-dashboard') {
+    return (
+      <div className="min-h-screen bg-slate-50 text-[#17231B]">
+        <AdminDashboardPage />
+        {/* Interactive Toast Notifications */}
+        {toastMessage && (
+          <div className="fixed top-14 left-1/2 -translate-y-1/2 -translate-x-1/2 z-50 bg-[#17231B] text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 backdrop-blur-xs animate-in fade-in slide-in-from-top-2 duration-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Router for Storefront Pages
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'home':
@@ -117,8 +133,6 @@ const MainContent: React.FC = () => {
         return <HelpCenterPage />;
       case 'privacy-terms':
         return <PrivacyPolicyTermsPage />;
-      case 'admin-dashboard':
-        return <AdminDashboardPage />;
       default:
         return <HomePage />;
     }
@@ -148,7 +162,7 @@ const MainContent: React.FC = () => {
 
       {/* Interactive Toast Notifications */}
       {toastMessage && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-gray-900/95 text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 backdrop-blur-xs animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-[#17231B] text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 backdrop-blur-xs animate-in fade-in slide-in-from-top-2 duration-200">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
           <span>{toastMessage}</span>
         </div>

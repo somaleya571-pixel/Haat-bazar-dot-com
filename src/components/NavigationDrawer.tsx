@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { PageId } from '../types';
+import { BrandLogo } from './BrandLogo';
 
 interface NavigationDrawerProps {
   isOpen: boolean;
@@ -202,18 +203,9 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
       />
 
       <div className="fixed inset-y-0 right-0 max-w-sm w-full bg-white shadow-2xl flex flex-col z-50">
-        {/* Drawer Header: Official Logo ONLY (removed text haatbazar.com as requested) */}
+        {/* Drawer Header: Brand Logo */}
         <div className="p-3.5 bg-gradient-to-r from-[#007A3D] to-[#005a2d] text-white flex items-center justify-between shadow-md">
-          <div className="bg-white px-3 py-1.5 rounded-xl shadow-xs flex items-center justify-center">
-            <img
-              src="/assets/haat_bazar_official_logo.png"
-              alt="হাট বাজার ডট কম - Haat Bazar"
-              className="h-8 sm:h-9 w-auto object-contain"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/assets/haat_bazar_logo.png';
-              }}
-            />
-          </div>
+          <BrandLogo variant="drawer" size="sm" onClick={() => { navigateTo('home'); onClose(); }} />
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-white/20 transition-colors cursor-pointer text-white"
@@ -302,15 +294,26 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
           </div>
         </div>
 
-        {/* Drawer Footer with Hotline */}
-        <div className="p-3 bg-white border-t border-gray-200">
+        {/* Drawer Footer with Hotline & Admin Access */}
+        <div className="p-3 bg-white border-t border-gray-200 space-y-2">
           <a
             href={`tel:${officialContact.hotline.replace(/\s+/g, '')}`}
-            className="flex items-center justify-center gap-2 w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs"
+            className="flex items-center justify-center gap-2 w-full py-2 bg-[#007A3D] hover:bg-[#006030] text-white rounded-lg text-xs font-bold transition-colors shadow-2xs"
           >
             <PhoneCall className="w-4 h-4" />
             <span>সরাসরি কল করুন: {officialContact.hotline}</span>
           </a>
+
+          <button
+            onClick={() => {
+              navigateTo('admin-dashboard');
+              onClose();
+            }}
+            className="flex items-center justify-center gap-2 w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-[#007A3D] border border-emerald-300 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+          >
+            <ShieldCheck className="w-4 h-4 text-[#007A3D]" />
+            <span>অ্যাডমিন ড্যাশবোর্ড (Admin Control Panel)</span>
+          </button>
         </div>
       </div>
     </div>
