@@ -60,6 +60,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     language,
     logoutAdmin,
     showToast,
+    ownerSession,
+    triggerSimulatedConcurrentSession,
   } = useShop();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -269,6 +271,25 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <span className="text-[10px] text-gray-400">BST</span>
             </div>
 
+            {/* Single Session Security Badge */}
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-[#006B35] border border-emerald-300 text-[11px] font-bold" title={`সক্রিয় সেশন আইডি: ${ownerSession?.sessionId || 'Active'}`}>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+              <span>একক সেশন: <span className="font-mono">{ownerSession?.sessionId ? `${ownerSession.sessionId.slice(-6)}` : 'Active'}</span></span>
+            </div>
+
+            {/* Simulate Concurrent Session Test Button */}
+            <button
+              onClick={() => {
+                if (window.confirm('একক-সেশন পরীক্ষা: আপনি কি অন্য ডিভাইস থেকে লগইন সিমুলেট করতে চান? এটি সাথে সাথে বর্তমান সেশনটি টার্মিনেট করবে।')) {
+                  triggerSimulatedConcurrentSession();
+                }
+              }}
+              className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-[10px] font-bold transition-all cursor-pointer"
+              title="অন্য ডিভাইস থেকে নতুন লগইন সিমুলেট করুন (পূর্বের সেশন টার্মিনেশন টেস্ট)"
+            >
+              <span>সেশন ইনভ্যালিডেশন টেস্ট</span>
+            </button>
+
             {/* Online / Offline status badge */}
             <button
               onClick={toggleStatus}
@@ -291,7 +312,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
             {/* Switch to Customer Storefront button */}
             <button
-              onClick={() => navigateTo('home')}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.history.pushState(null, '', '/');
+                }
+                navigateTo('home');
+              }}
               className="px-3 sm:px-3.5 py-1.5 bg-[#006B35] hover:bg-[#005229] text-white text-xs font-bold rounded-xl shadow-xs transition-transform hover:scale-102 flex items-center gap-1.5 cursor-pointer"
               title="Return to Customer Marketplace View"
             >

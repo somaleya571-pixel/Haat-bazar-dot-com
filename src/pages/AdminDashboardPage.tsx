@@ -15,9 +15,26 @@ import { AdminActivityLogsPage } from './admin/AdminActivityLogsPage';
 import { AdminSettingsPage } from './admin/AdminSettingsPage';
 import { AdminWebsitePage } from './admin/AdminWebsitePage';
 import { AdminProfilePage } from './admin/AdminProfilePage';
+import { AdminLoginPage } from './admin/AdminLoginPage';
 
 export const AdminDashboardPage: React.FC = () => {
-  const { adminTab } = useShop();
+  const {
+    adminTab,
+    isAdminLoggedIn,
+    ownerSession,
+    sessionConflictReason,
+    clearSessionConflict,
+  } = useShop();
+
+  // Strict Single-Session Security Gate: Block all unauthorized access completely
+  if (!isAdminLoggedIn || !ownerSession) {
+    return (
+      <AdminLoginPage
+        conflictReason={sessionConflictReason}
+        onClearConflict={clearSessionConflict}
+      />
+    );
+  }
 
   const renderContent = () => {
     switch (adminTab) {

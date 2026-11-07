@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShopProvider, useShop } from './context/ShopContext';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -63,10 +63,6 @@ const Footer: React.FC = () => {
             শর্তাবলী (Terms & Conditions)
           </button>
           <span>•</span>
-          <button onClick={() => navigateTo('admin-dashboard')} className="hover:text-[#006B35] font-semibold text-emerald-800">
-            অ্যাডমিন প্যানেল (Admin Panel)
-          </button>
-          <span>•</span>
           <span className="text-gray-400">© 2026 Haat Bazar. All rights reserved.</span>
         </div>
       </div>
@@ -75,10 +71,32 @@ const Footer: React.FC = () => {
 };
 
 const MainContent: React.FC = () => {
-  const { currentPage, toastMessage } = useShop();
+  const { currentPage, navigateTo, toastMessage } = useShop();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // When viewing Admin Dashboard, render full screen Admin Panel
+  // Sync /owner path with admin page
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const pathname = window.location.pathname;
+      const hash = window.location.hash;
+      const isOwnerPath = pathname === '/owner' || pathname.startsWith('/owner/') || hash === '#/owner';
+      if (isOwnerPath && currentPage !== 'admin-dashboard') {
+        navigateTo('admin-dashboard');
+      } else if (!isOwnerPath && currentPage === 'admin-dashboard') {
+        navigateTo('home');
+      }
+    };
+
+    handleLocationChange();
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, [currentPage, navigateTo]);
+
+  // When viewing Admin / Owner Portal, render full screen Admin Panel
   if (currentPage === 'admin-dashboard') {
     return (
       <div className="min-h-screen bg-slate-50 text-[#17231B]">

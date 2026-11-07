@@ -43,6 +43,16 @@ import {
   calculateCourierDeliveryCharge,
 } from '../utils/pricing';
 import { generateOrderId } from '../utils/order';
+import {
+  OwnerActiveSession,
+  OWNER_SESSION_STORAGE_KEY,
+  OWNER_SESSION_CHANNEL,
+  verifyAdminCredentials,
+  createOwnerSession,
+  checkSessionConflict,
+  isSessionActiveAndValid,
+  MASTER_ADMIN_PASSWORD,
+} from '../utils/session';
 
 export const DEFAULT_OFFICIAL_CONTACT: OfficialContactInfo = {
   hotline: '+880 1700-123456',
@@ -167,8 +177,13 @@ interface ShopContextType {
   adminProfile: AdminProfile;
   updateAdminProfile: (updated: Partial<AdminProfile>) => void;
   isAdminLoggedIn: boolean;
-  loginAdmin: (password?: string, role?: AdminRole) => boolean;
+  ownerSession: OwnerActiveSession | null;
+  sessionConflictReason: string | null;
+  clearSessionConflict: () => void;
+  loginAdmin: (email?: string, password?: string, role?: AdminRole) => { success: boolean; error?: string };
   logoutAdmin: () => void;
+  validateOwnerSession: () => boolean;
+  triggerSimulatedConcurrentSession: () => void;
 
   // Returns & Reviews
   returns: ReturnRequest[];
@@ -262,27 +277,219 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast(language === 'bn' ? 'আপনি সফলভাবে লগআউট করেছেন।' : 'You have logged out.');
   };
 
-  // Admin Auth
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
-    const saved = localStorage.getItem('hb_admin_logged_in');
-    return saved !== null ? saved === 'true' : true;
+  // Admin Single-Session Authentication & Enforcement
+  const [ownerSession, setOwnerSession] = useState<OwnerActiveSession | null>(() => {
+    const saved = localStorage.getItem(OWNER_SESSION_STORAGE_KEY);
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return null;
+    }
   });
 
-  const loginAdmin = (_password?: string, role: AdminRole = 'Super Admin') => {
-    setIsAdminLoggedIn(true);
+  const [sessionConflictReason, setSessionConflictReason] = useState<string | null>(null);
+
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
+    const saved = localStorage.getItem(OWNER_SESSION_STORAGE_KEY);
+    return Boolean(saved);
+  });
+
+  // Cross-Tab & Multi-Device Single Session Enforcement via BroadcastChannel & Storage Event
+  useEffect(() => {
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        channel = new BroadcastChannel(OWNER_SESSION_CHANNEL);
+        channel.onmessage = (event) => {
+          const data = event.data;
+          if (data && data.type === 'NEW_OWNER_SESSION') {
+            // A new session has been initiated! If our local session doesn't match, invalidate immediately.
+            setOwnerSession((currentLocalSession) => {
+              if (currentLocalSession && currentLocalSession.sessionId !== data.sessionId) {
+                setIsAdminLoggedIn(false);
+                setSessionConflictReason(
+                  'আপনার অ্যাকাউন্টে নতুন একটি ডিভাইস বা ব্রাউজার সেশন থেকে লগইন করা হয়েছে। একক-সেশন (Single Session) সুরক্ষা নীতির কারণে এই পূর্ববর্তী সেশনটি স্বয়ংক্রিয়ভাবে বাতিল করা হয়েছে।'
+                );
+                showToast('⚠️ অন্য উইন্ডো/ডিভাইসে নতুন সেশন শুরু হওয়ায় বর্তমান সেশনটি বাতিল করা হয়েছে!');
+                return null;
+              }
+              return currentLocalSession;
+            });
+          }
+        };
+      }
+    } catch {
+      // BroadcastChannel fallback
+    }
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === OWNER_SESSION_STORAGE_KEY) {
+        if (!e.newValue) {
+          setIsAdminLoggedIn(false);
+          setOwnerSession(null);
+        } else {
+          try {
+            const newStoredSession: OwnerActiveSession = JSON.parse(e.newValue);
+            setOwnerSession((currentLocalSession) => {
+              if (currentLocalSession && currentLocalSession.sessionId !== newStoredSession.sessionId) {
+                setIsAdminLoggedIn(false);
+                setSessionConflictReason(
+                  'অন্য ব্রাউজার উইন্ডো বা ডিভাইস থেকে নতুন সেশন শুরু হয়েছে। একক-সেশন নীতি অনুসারে এই সেশনটি বাতিল করা হলো।'
+                );
+                showToast('⚠️ সেশন কনফ্লিক্ট: পূর্ববর্তী সেশন বাতিল করা হয়েছে।');
+                return null;
+              }
+              return currentLocalSession;
+            });
+          } catch {
+            // ignore JSON parse error
+          }
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Heartbeat check every 2 seconds to ensure strict single-session validity
+    const heartbeatInterval = setInterval(() => {
+      setOwnerSession((currentLocalSession) => {
+        if (!currentLocalSession) return null;
+        const currentRaw = localStorage.getItem(OWNER_SESSION_STORAGE_KEY);
+        const currentStored: OwnerActiveSession | null = currentRaw ? JSON.parse(currentRaw) : null;
+        const check = checkSessionConflict(currentLocalSession.sessionId, currentStored);
+        if (check.isConflict) {
+          setIsAdminLoggedIn(false);
+          setSessionConflictReason(check.reason || 'সেশন টার্মিনেট হয়েছে।');
+          return null;
+        }
+        return currentLocalSession;
+      });
+    }, 2000);
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(heartbeatInterval);
+    };
+  }, []);
+
+  const loginAdmin = (
+    email: string = 'tanzilahammed130@gmail.com',
+    password: string = MASTER_ADMIN_PASSWORD,
+    role: AdminRole = 'Super Admin'
+  ): { success: boolean; error?: string } => {
+    const verified = verifyAdminCredentials(email, password);
+    if (!verified.success) {
+      return { success: false, error: verified.error };
+    }
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Desktop Admin Terminal';
+    const newSession = createOwnerSession(email, role, verified.name, userAgent);
+
+    // Overwrite storage key with the sole active session
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify(newSession));
     localStorage.setItem('hb_admin_logged_in', 'true');
-    setAdminProfile((prev) => ({ ...prev, role, status: 'Online' }));
-    logActivity('Admin Login', 'Authentication', `Admin logged in with ${role} privileges`);
-    showToast(`স্বাগতম! আপনি ${role} হিসেবে প্রবেশ করেছেন।`);
-    return true;
+
+    setOwnerSession(newSession);
+    setIsAdminLoggedIn(true);
+    setSessionConflictReason(null);
+
+    setAdminProfile((prev) => ({
+      ...prev,
+      name: verified.name || prev.name,
+      email: email,
+      role: role,
+      status: 'Online',
+      lastLogin: new Date().toISOString(),
+    }));
+
+    // Broadcast invalidation signal to all other tabs/windows
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel(OWNER_SESSION_CHANNEL);
+        channel.postMessage({
+          type: 'NEW_OWNER_SESSION',
+          sessionId: newSession.sessionId,
+          timestamp: newSession.loginTimestamp,
+        });
+        channel.close();
+      }
+    } catch {
+      // fallback
+    }
+
+    logActivity(
+      'Super Admin Login',
+      'Security',
+      `সুপার অ্যাডমিন একক-সেশন শুরু হয়েছে: ${newSession.sessionId} (${email})`
+    );
+    showToast(`স্বাগতম! আপনি সুপার অ্যাডমিন হিসেবে প্রবেশ করেছেন।`);
+
+    // Keep URL in sync with /owner
+    if (typeof window !== 'undefined' && window.location.pathname !== '/owner') {
+      window.history.pushState(null, '', '/owner');
+    }
+
+    return { success: true };
   };
 
   const logoutAdmin = () => {
     setIsAdminLoggedIn(false);
+    setOwnerSession(null);
+    localStorage.removeItem(OWNER_SESSION_STORAGE_KEY);
     localStorage.setItem('hb_admin_logged_in', 'false');
-    logActivity('Admin Logout', 'Authentication', 'Session ended safely');
+    logActivity('Admin Logout', 'Security', 'সুপার অ্যাডমিন সেশন সমাপ্ত হয়েছে');
     showToast('অ্যাডমিন সেশন সমাপ্ত হয়েছে।');
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '/');
+    }
     navigateTo('home');
+  };
+
+  const clearSessionConflict = () => {
+    setSessionConflictReason(null);
+  };
+
+  const validateOwnerSession = (): boolean => {
+    const raw = localStorage.getItem(OWNER_SESSION_STORAGE_KEY);
+    if (!raw || !ownerSession) return false;
+    try {
+      const stored: OwnerActiveSession = JSON.parse(raw);
+      return isSessionActiveAndValid(ownerSession.sessionId, stored);
+    } catch {
+      return false;
+    }
+  };
+
+  const triggerSimulatedConcurrentSession = () => {
+    // Simulates an administrative login initiated from another browser or device
+    const foreignSession = createOwnerSession(
+      'owner@haatbazar.com',
+      'Super Admin',
+      'Secondary Login (Device B)',
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile'
+    );
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify(foreignSession));
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel(OWNER_SESSION_CHANNEL);
+        channel.postMessage({
+          type: 'NEW_OWNER_SESSION',
+          sessionId: foreignSession.sessionId,
+          timestamp: foreignSession.loginTimestamp,
+        });
+        channel.close();
+      }
+    } catch {}
+
+    setIsAdminLoggedIn(false);
+    setOwnerSession(null);
+    setSessionConflictReason(
+      'আপনার অ্যাকাউন্টে নতুন একটি ডিভাইস বা ব্রাউজার সেশন থেকে লগইন করা হয়েছে। একক-সেশন (Single Session) সুরক্ষা নীতির কারণে এই পূর্ববর্তী সেশনটি স্বয়ংক্রিয়ভাবে বাতিল করা হয়েছে।'
+    );
+    showToast('⚠️ নতুন সেশন শুরু হওয়ায় পূর্বের সেশন সাথে সাথে বাতিল করা হয়েছে!');
   };
 
   // Admin Profile
@@ -723,6 +930,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentPage(page);
     setPageParams(params);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (typeof window !== 'undefined') {
+      if (page === 'admin-dashboard') {
+        if (window.location.pathname !== '/owner') {
+          window.history.pushState(null, '', '/owner');
+        }
+      } else {
+        if (window.location.pathname === '/owner') {
+          window.history.pushState(null, '', '/');
+        }
+      }
+    }
   };
 
   const toggleLanguage = () => {
@@ -1138,8 +1357,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         adminProfile,
         updateAdminProfile,
         isAdminLoggedIn,
+        ownerSession,
+        sessionConflictReason,
+        clearSessionConflict,
         loginAdmin,
         logoutAdmin,
+        validateOwnerSession,
+        triggerSimulatedConcurrentSession,
         returns,
         submitReturnRequest,
         updateReturnStatus,
