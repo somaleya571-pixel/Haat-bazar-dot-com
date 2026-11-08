@@ -781,10 +781,10 @@ export const AdminProductsPage: React.FC = () => {
               <div className="p-2.5 rounded-2xl bg-rose-50">
                 <AlertTriangle className="w-6 h-6 text-rose-600" />
               </div>
-              <h3 className="font-bold text-base text-gray-900">পণ্য অপসারণ নিশ্চিতকরণ</h3>
+              <h3 className="font-bold text-base text-gray-900">স্থায়ীভাবে পণ্য অপসারণ (Permanent Delete)</h3>
             </div>
-            <p className="text-xs text-gray-600">
-              আপনি কি নিশ্চিত যে এই পণ্যটি ডাটাবেস ও গ্রাহক প্যানেল থেকে মুছে ফেলতে চান?
+            <p className="text-xs text-gray-600 leading-relaxed">
+              আপনি কি নিশ্চিত যে এই পণ্যটি <span className="font-bold text-rose-600">স্থায়ীভাবে মুছে ফেলতে</span> চান? এটি ক্লাউড ডাটাবেস ও সকল ডিভাইস থেকে চিরতরে মুছে যাবে এবং কখনো ফিরে আসবে না।
             </p>
             <div className="pt-2 flex gap-3">
               <button

@@ -22,59 +22,10 @@
   background: #059669;
 }
 
-/* Dark Mode Styles (Activated when 'dark' class is present on html/body) */
-html.dark, body.dark {
-  background-color: #0b1315 !important;
-  color: #f1f5f9 !important;
-}
-
-html.dark header, 
-html.dark nav, 
-html.dark footer {
-  background-color: #111e22 !important;
-  border-color: #1e333a !important;
-  color: #f1f5f9 !important;
-}
-
-html.dark .bg-white {
-  background-color: #152429 !important;
-  color: #f1f5f9 !important;
-  border-color: #223c44 !important;
-}
-
-html.dark .bg-gray-50, 
-html.dark .bg-gray-100 {
-  background-color: #0e1a1e !important;
-  color: #e2e8f0 !important;
-  border-color: #223c44 !important;
-}
-
-html.dark .text-gray-900, 
-html.dark .text-gray-800 {
-  color: #f8fafc !important;
-}
-
-html.dark .text-gray-700, 
-html.dark .text-gray-600 {
-  color: #cbd5e1 !important;
-}
-
-html.dark .text-gray-500, 
-html.dark .text-gray-400 {
-  color: #94a3b8 !important;
-}
-
-html.dark .border-gray-200, 
-html.dark .border-gray-100 {
-  border-color: #223c44 !important;
-}
-
-html.dark input, 
-html.dark select, 
-html.dark textarea {
-  background-color: #0b1315 !important;
-  color: #f8fafc !important;
-  border-color: #223c44 !important;
+/* Radiant Light Mode Base & System Accents */
+html, body {
+  background-color: #F8FAFC;
+  color: #0F172A;
 }
 
 /* Mobile Viewport Safety & Keyboard Avoidance */

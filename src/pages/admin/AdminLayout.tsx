@@ -33,6 +33,7 @@ import {
 import { useShop } from '../../context/ShopContext';
 import { AdminMenuTab } from '../../types';
 import { BrandLogo } from '../../components/BrandLogo';
+import { BrandingBanner } from '../../components/BrandingBanner';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -314,18 +315,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <span>{adminProfile.status}</span>
             </button>
 
-            {/* Dark / Light Mode Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-[#006B35] transition-all cursor-pointer"
-              title={theme === 'dark' ? 'সুইচ করুন ব্রাইট মোডে' : 'সুইচ করুন ডার্ক মোডে'}
+            {/* Radiant Mode Badge */}
+            <div
+              className="p-2 rounded-xl border border-emerald-200 bg-emerald-50 text-[#006B35] flex items-center gap-1 shadow-2xs"
+              title="ব্রাইট মোড সক্রিয় (সাদা ও সবুজ থিম)"
             >
-              {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-indigo-600" />
-              )}
-            </button>
+              <Sun className="w-4 h-4 text-amber-500" />
+            </div>
 
             {/* Switch to Customer Storefront button */}
             <button
@@ -461,7 +457,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </aside>
 
         {/* Dynamic Admin Page Container with Mobile Viewport Padding */}
-        <main className="flex-1 min-w-0 pb-32 sm:pb-12 viewport-padding-safe">{children}</main>
+        <main className="flex-1 min-w-0 pb-32 sm:pb-12 viewport-padding-safe space-y-6">
+          <BrandingBanner variant="compact" />
+          {children}
+        </main>
       </div>
 
       {/* 3. MOBILE SLIDE-OUT DRAWER FOR FULL 15-ITEM MENU */}

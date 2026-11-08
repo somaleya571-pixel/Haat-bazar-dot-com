@@ -234,9 +234,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [adminTab, setAdminTab] = useState<AdminMenuTab>('dashboard');
   const [language, setLanguage] = useState<'bn' | 'en'>('bn');
 
-  // Theme
+  // Theme: Bright, Radiant Light Mode by Default
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = safeStorage.getItem('hb_theme');
+    // If previously saved as dark, reset to light mode as requested by user
+    if (saved === 'dark') {
+      safeStorage.setItem('hb_theme', 'light');
+      return 'light';
+    }
     return saved === 'dark' ? 'dark' : 'light';
   });
 
@@ -250,6 +255,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       document.body.classList.remove('dark');
     }
   }, [theme]);
+
+  // Clean up any stale dark classes on initial render
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+    document.body.classList.remove('dark');
+  }, []);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
@@ -523,9 +534,48 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast('অ্যাডমিন প্রোফাইল সফলভাবে সংরক্ষিত হয়েছে');
   };
 
-  // Products: Centralized Firestore Database Synchronization
+  // Persistent Tombstones for Deleted Products
+  // Tracks deleted product IDs in safeStorage AND in Firestore (settings/deleted_products)
+  // so deleted items NEVER resurrect across refreshes, re-seeds, or device sync.
+  const [deletedProductIds, setDeletedProductIds] = useState<string[]>(() => {
+    return safeStorage.getJSON<string[]>('hb_deleted_product_ids', []);
+  });
+
+  // Real-time synchronization of deleted product tombstones from Firestore
+  useEffect(() => {
+    const deletedDocRef = doc(db, 'settings', 'deleted_products');
+    const unsubscribe = onSnapshot(
+      deletedDocRef,
+      (snap) => {
+        if (snap.exists()) {
+          const remoteIds: string[] = snap.data()?.ids || [];
+          if (Array.isArray(remoteIds) && remoteIds.length > 0) {
+            setDeletedProductIds((prev) => {
+              const merged = Array.from(new Set([...prev, ...remoteIds]));
+              safeStorage.setJSON('hb_deleted_product_ids', merged);
+              return merged;
+            });
+            // Purge deleted IDs from current products state
+            setProducts((prev) => {
+              const filtered = prev.filter((p) => !remoteIds.includes(p.id));
+              safeStorage.setJSON('hb_products', filtered);
+              return filtered;
+            });
+          }
+        }
+      },
+      () => {
+        // Silently catch network/permission warnings
+      }
+    );
+    return () => unsubscribe();
+  }, []);
+
+  // Products: Centralized Firestore Database Synchronization with Tombstone Filtering
   const [products, setProducts] = useState<Product[]>(() => {
-    return safeStorage.getJSON('hb_products', INITIAL_PRODUCTS);
+    const deleted = safeStorage.getJSON<string[]>('hb_deleted_product_ids', []);
+    const stored = safeStorage.getJSON<Product[]>('hb_products', INITIAL_PRODUCTS);
+    return stored.filter((p) => !deleted.includes(p.id));
   });
 
   // Listen to Firestore products collection in real time
@@ -534,17 +584,22 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onSnapshot(
       productsColRef,
       (snapshot) => {
+        const deleted = safeStorage.getJSON<string[]>('hb_deleted_product_ids', deletedProductIds);
         if (snapshot.empty) {
-          // Initial seeding to cloud database so all browsers get the centralized catalog
-          INITIAL_PRODUCTS.forEach((p) => {
+          // Initial seeding: NEVER seed any product that was previously deleted
+          const seedable = INITIAL_PRODUCTS.filter((p) => !deleted.includes(p.id));
+          seedable.forEach((p) => {
             setDoc(doc(db, 'products', p.id), p).catch(() => {});
           });
-          setProducts(INITIAL_PRODUCTS);
-          safeStorage.setJSON('hb_products', INITIAL_PRODUCTS);
+          setProducts(seedable);
+          safeStorage.setJSON('hb_products', seedable);
         } else {
           const loaded: Product[] = [];
           snapshot.forEach((snapDoc) => {
-            loaded.push(snapDoc.data() as Product);
+            const p = snapDoc.data() as Product;
+            if (!deleted.includes(p.id)) {
+              loaded.push(p);
+            }
           });
           setProducts(loaded);
           safeStorage.setJSON('hb_products', loaded);
@@ -556,7 +611,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [deletedProductIds]);
 
   useEffect(() => {
     safeStorage.setJSON('hb_products', products);
@@ -579,6 +634,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addProduct = (product: Product) => {
+    // If this product ID was previously in deleted list, remove it from tombstones
+    if (deletedProductIds.includes(product.id)) {
+      const nextDeleted = deletedProductIds.filter((id) => id !== product.id);
+      setDeletedProductIds(nextDeleted);
+      safeStorage.setJSON('hb_deleted_product_ids', nextDeleted);
+      setDoc(doc(db, 'settings', 'deleted_products'), { ids: nextDeleted }, { merge: true }).catch(() => {});
+    }
+
     setProducts((prev) => [product, ...prev]);
     safeStorage.setJSON('hb_products', [product, ...products]);
 
@@ -596,16 +659,40 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteProduct = (productId: string) => {
     const prod = products.find((p) => p.id === productId);
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
-    safeStorage.setJSON('hb_products', products.filter((p) => p.id !== productId));
+    const updatedDeleted = Array.from(new Set([...deletedProductIds, productId]));
 
-    // Delete from Firestore
+    // 1. Immediately store in persistent tombstone state & localStorage
+    setDeletedProductIds(updatedDeleted);
+    safeStorage.setJSON('hb_deleted_product_ids', updatedDeleted);
+
+    // 2. Filter products state & local storage
+    const updatedProducts = products.filter((p) => p.id !== productId);
+    setProducts(updatedProducts);
+    safeStorage.setJSON('hb_products', updatedProducts);
+
+    // 3. Purge from cart and wishlist immediately
+    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+    setWishlist((prev) => prev.filter((id) => id !== productId));
+
+    // 4. Delete document from Firestore
     deleteDoc(doc(db, 'products', productId)).catch((err) => {
       handleFirestoreError(err, OperationType.DELETE, `products/${productId}`);
     });
 
-    logActivity('Product Deleted', 'Products', `Deleted product: ${prod?.nameBn || productId}`, productId);
-    showToast('পণ্য তালিকা থেকে অপসারণ ও সিঙ্ক করা হয়েছে');
+    // 5. Persist tombstone to Firestore so no reload, restart or other device restores it
+    setDoc(
+      doc(db, 'settings', 'deleted_products'),
+      {
+        ids: updatedDeleted,
+        lastDeletedId: productId,
+        lastDeletedName: prod?.nameBn || productId,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    ).catch(() => {});
+
+    logActivity('Product Deleted', 'Products', `স্থায়ীভাবে পণ্য ডিলিট করা হয়েছে: ${prod?.nameBn || productId}`, productId);
+    showToast(language === 'bn' ? 'পণ্যটি স্থায়ীভাবে ডিলিট করা হয়েছে এবং এটি আর কখনো ফিরে আসবে না' : 'Product permanently deleted');
   };
 
   // Couriers
