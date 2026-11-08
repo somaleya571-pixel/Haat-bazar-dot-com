@@ -311,10 +311,11 @@ export interface ProductReview {
 
 export interface AppNotification {
   id: string;
-  type: 'order' | 'payment' | 'delivery' | 'offer' | 'announcement';
+  type: 'order' | 'payment' | 'delivery' | 'offer' | 'announcement' | 'system' | 'account';
   title: string;
   message: string;
   timestamp: string;
   isRead: boolean;
   linkPage?: PageId;
 }
+

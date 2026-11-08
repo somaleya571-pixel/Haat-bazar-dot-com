@@ -135,6 +135,7 @@ interface ShopContextType {
   assignOrderCourier: (orderId: string, courierId: string, courierName: string, trackingCode?: string) => void;
   updateOrderPaymentStatus: (orderId: string, status: Order['paymentStatus']) => void;
   deleteOrder: (orderId: string) => void;
+  deleteCancelledOrders: () => number;
   getOrderById: (orderId: string) => Order | undefined;
 
   // Customers
@@ -142,6 +143,9 @@ interface ShopContextType {
   updateCustomerProfile: (updated: Partial<CustomerInfo>) => void;
   customersList: CustomerInfo[];
   updateCustomerAccount: (customerId: string, updated: Partial<CustomerInfo>) => void;
+  suspendCustomer: (customerId: string) => void;
+  activateCustomer: (customerId: string) => void;
+  deleteCustomer: (customerId: string) => void;
   isLoggedIn: boolean;
   login: (phoneOrEmail?: string) => void;
   logout: () => void;
@@ -165,6 +169,8 @@ interface ShopContextType {
   tickets: SupportTicket[];
   createTicket: (ticketData: Omit<SupportTicket, 'id' | 'createdAt' | 'updatedAt' | 'replies'>) => SupportTicket;
   replyToTicket: (ticketId: string, message: string, sender: 'customer' | 'admin') => void;
+  deleteTicketReply: (ticketId: string, replyId: string) => void;
+  deleteTicket: (ticketId: string) => void;
   updateTicketStatus: (ticketId: string, status: SupportTicket['status']) => void;
 
   // Activity Logs
@@ -802,6 +808,27 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast(`টিকিট স্ট্যাটাস হালনাগাদ: ${status}`);
   };
 
+  const deleteTicketReply = (ticketId: string, replyId: string) => {
+    setTickets((prev) =>
+      prev.map((t) => {
+        if (t.id !== ticketId) return t;
+        return {
+          ...t,
+          replies: t.replies.filter((r) => r.id !== replyId),
+        };
+      })
+    );
+    logActivity('Ticket Reply Deleted', 'Support', `Deleted reply ${replyId} from ticket ${ticketId}`, ticketId);
+    showToast('রিপ্লাই সফলভাবে মুছে ফেলা হয়েছে');
+  };
+
+  const deleteTicket = (ticketId: string) => {
+    setTickets((prev) => prev.filter((t) => t.id !== ticketId));
+    logActivity('Ticket Deleted', 'Support', `Deleted ticket ${ticketId}`, ticketId);
+    showToast('সাপোর্ট টিকেট সফলভাবে মোছা হয়েছে');
+  };
+
+
   // Activity Logs
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
     return safeStorage.getJSON('hb_activity_logs', INITIAL_ACTIVITY_LOGS);
@@ -1030,6 +1057,81 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logActivity('Customer Account Modified', 'Customers', `Updated customer ${customerId} (Status: ${updated.status || 'Active'})`, customerId);
     showToast('গ্রাহক অ্যাকাউন্ট সফলভাবে আপডেট হয়েছে');
   };
+
+  const suspendCustomer = (customerId: string) => {
+    const target = customersList.find((c) => c.id === customerId);
+    setCustomersList((prev) =>
+      prev.map((c) => (c.id === customerId ? { ...c, status: 'Suspended' } : c))
+    );
+    if (customer.id === customerId || customer.phone === target?.phone) {
+      setCustomer((prev) => ({ ...prev, status: 'Suspended' }));
+    }
+
+    // Automated notification for account deactivation
+    const deactNotif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      type: 'account',
+      title: 'অ্যাকাউন্ট ডিঅ্যাক্টিভেশন নোটিফিকেশন',
+      message: 'প্রিয় গ্রাহক, আপনার অ্যাকাউন্টটি সাময়িকভাবে ডিঅ্যাক্টিভ করা হয়েছে।',
+      timestamp: 'এইমাত্র',
+      isRead: false,
+      linkPage: 'profile',
+    };
+    setNotifications((prev) => [deactNotif, ...prev]);
+
+    logActivity('Customer Suspended', 'Customers', `Suspended customer account ${customerId} (${target?.name || ''})`, customerId);
+    showToast('গ্রাহক অ্যাকাউন্ট সাময়িকভাবে ডিঅ্যাক্টিভ করা হয়েছে');
+  };
+
+  const activateCustomer = (customerId: string) => {
+    const target = customersList.find((c) => c.id === customerId);
+    setCustomersList((prev) =>
+      prev.map((c) => (c.id === customerId ? { ...c, status: 'Active' } : c))
+    );
+    if (customer.id === customerId || customer.phone === target?.phone) {
+      setCustomer((prev) => ({ ...prev, status: 'Active' }));
+    }
+
+    const actNotif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      type: 'account',
+      title: 'অ্যাকাউন্ট সক্রিয়করণ নোটিফিকেশন',
+      message: 'প্রিয় গ্রাহক, আপনার অ্যাকাউন্টটি পুনরায় সক্রিয় করা হয়েছে।',
+      timestamp: 'এইমাত্র',
+      isRead: false,
+      linkPage: 'profile',
+    };
+    setNotifications((prev) => [actNotif, ...prev]);
+
+    logActivity('Customer Activated', 'Customers', `Activated customer account ${customerId} (${target?.name || ''})`, customerId);
+    showToast('গ্রাহক অ্যাকাউন্ট সক্রিয় করা হয়েছে');
+  };
+
+  const deleteCustomer = (customerId: string) => {
+    const target = customersList.find((c) => c.id === customerId);
+    setCustomersList((prev) => prev.filter((c) => c.id !== customerId));
+
+    // Automated notification for permanent deletion
+    const delNotif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      type: 'account',
+      title: 'অ্যাকাউন্ট অবলুপ্তি নোটিফিকেশন',
+      message: 'প্রিয় গ্রাহক, আপনার অ্যাকাউন্টটি স্থায়ীভাবে মুছে ফেলা হয়েছে।',
+      timestamp: 'এইমাত্র',
+      isRead: false,
+      linkPage: 'home',
+    };
+    setNotifications((prev) => [delNotif, ...prev]);
+
+    if (customer.id === customerId || customer.phone === target?.phone) {
+      setIsLoggedIn(false);
+      safeStorage.setItem('hb_logged_in', 'false');
+    }
+
+    logActivity('Customer Deleted', 'Customers', `Permanently deleted customer account ${customerId} (${target?.name || ''})`, customerId);
+    showToast('গ্রাহক অ্যাকাউন্ট স্থায়ীভাবে মুছে ফেলা হয়েছে');
+  };
+
 
   // Cart
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -1377,6 +1479,27 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateOrderStatus = (orderId: string, status: OrderStatus, note?: string) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+
+    // Automated cancellation notifications with specific Bengali templates
+    if (status === 'Cancelled' && targetOrder) {
+      const isCod = targetOrder.paymentMethod === 'Cash on Delivery';
+      const cancelMessage = isCod
+        ? 'প্রিয় গ্রাহক, অনিবার্য কারণে আপনার অর্ডারটি বাতিল করা হয়েছে। অসুবিধার জন্য আমরা আন্তরিকভাবে দুঃখিত।'
+        : 'প্রিয় গ্রাহক, অনিবার্য কারণে আপনার অর্ডারটি বাতিল করা হয়েছে। আপনার রিফান্ড প্রসেস করা হয়েছে এবং নির্দিষ্ট সময়ের মধ্যে অ্যাকাউন্টে পৌঁছে যাবে।';
+
+      const cancelNotif: AppNotification = {
+        id: `notif-${Date.now()}`,
+        type: 'order',
+        title: `অর্ডার বাতিল সংক্রান্ত বিজ্ঞপ্তি (${orderId})`,
+        message: cancelMessage,
+        timestamp: 'এইমাত্র',
+        isRead: false,
+        linkPage: 'order-tracking',
+      };
+      setNotifications((prev) => [cancelNotif, ...prev]);
+    }
+
     setOrders((prev) =>
       prev.map((order) => {
         if (order.id !== orderId) return order;
@@ -1472,9 +1595,30 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteDoc(doc(db, 'orders', orderId)).catch((err) => {
       handleFirestoreError(err, OperationType.DELETE, `orders/${orderId}`);
     });
-    logActivity('Order Deleted', 'Orders', `Deleted order ID ${orderId}`, orderId);
-    showToast('অর্ডার সফলভাবে মোছা হয়েছে');
+    logActivity('Order Deleted', 'Orders', `Permanently deleted order ID ${orderId}`, orderId);
+    showToast('অর্ডার স্থায়ীভাবে মোছা হয়েছে');
   };
+
+  const deleteCancelledOrders = (): number => {
+    const cancelledOrders = orders.filter((o) => o.status === 'Cancelled');
+    const count = cancelledOrders.length;
+    if (count === 0) {
+      showToast('কোনো বাতিল অর্ডার নেই');
+      return 0;
+    }
+    setOrders((prev) => {
+      const remaining = prev.filter((o) => o.status !== 'Cancelled');
+      safeStorage.setJSON('hb_orders', remaining);
+      return remaining;
+    });
+    cancelledOrders.forEach((o) => {
+      deleteDoc(doc(db, 'orders', o.id)).catch(() => {});
+    });
+    logActivity('Cancelled Orders Purged', 'Orders', `Permanently deleted ${count} cancelled orders`);
+    showToast(`${count}টি বাতিল অর্ডার স্থায়ীভাবে মুছে ফেলা হয়েছে`);
+    return count;
+  };
+
 
   const getOrderById = (orderId: string) => {
     return orders.find((o) => o.id === orderId);
@@ -1566,11 +1710,15 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         assignOrderCourier,
         updateOrderPaymentStatus,
         deleteOrder,
+        deleteCancelledOrders,
         getOrderById,
         customer,
         updateCustomerProfile,
         customersList,
         updateCustomerAccount,
+        suspendCustomer,
+        activateCustomer,
+        deleteCustomer,
         isLoggedIn,
         login,
         logout,
@@ -1588,6 +1736,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         tickets,
         createTicket,
         replyToTicket,
+        deleteTicketReply,
+        deleteTicket,
         updateTicketStatus,
         activityLogs,
         logActivity,

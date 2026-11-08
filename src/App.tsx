@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { NavigationDrawer } from './components/NavigationDrawer';
 import { BrandLogo } from './components/BrandLogo';
+import { BrandingBanner } from './components/BrandingBanner';
 
 // Customer Pages
 import { HomePage } from './pages/HomePage';
@@ -161,8 +162,9 @@ const MainContent: React.FC = () => {
       {/* Header with Hotline, Logo, Search, Menu */}
       <Header onOpenDrawer={() => setIsDrawerOpen(true)} />
 
-      {/* Main Page Content with Mobile Viewport Safety */}
+      {/* Main Page Content with Mobile Viewport Safety & Professional Branding Banner across all main pages */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-28 sm:pb-12 viewport-padding-safe">
+        <BrandingBanner variant={currentPage === 'home' ? 'hero' : 'compact'} />
         {renderCurrentPage()}
       </main>
 

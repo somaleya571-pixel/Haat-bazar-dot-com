@@ -18,6 +18,8 @@ import {
   X,
   CreditCard,
   Package,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { Order, OrderStatus } from '../../types';
@@ -43,6 +45,8 @@ export const AdminOrdersPage: React.FC = () => {
     updateOrderStatus,
     assignOrderCourier,
     updateOrderPaymentStatus,
+    deleteOrder,
+    deleteCancelledOrders,
     returns,
     updateReturnStatus,
     showToast,
@@ -53,9 +57,15 @@ export const AdminOrdersPage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [dateSearch, setDateSearch] = useState('');
 
+  // Permanent Delete Confirmation State
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [showBatchPurgeConfirm, setShowBatchPurgeConfirm] = useState(false);
+
   // Assign courier state inside modal
   const [assigningCourierId, setAssigningCourierId] = useState('');
   const [trackingNumberInput, setTrackingNumberInput] = useState('');
+
+  const cancelledOrdersList = orders.filter((o) => o.status === 'Cancelled');
 
   // Filtered Orders
   const filteredOrders = orders.filter((o) => {
@@ -86,6 +96,19 @@ export const AdminOrdersPage: React.FC = () => {
     }
   };
 
+  const handlePermanentDelete = (order: Order) => {
+    deleteOrder(order.id);
+    setOrderToDelete(null);
+    if (selectedOrder?.id === order.id) {
+      setSelectedOrder(null);
+    }
+  };
+
+  const handleBatchPurge = () => {
+    deleteCancelledOrders();
+    setShowBatchPurgeConfirm(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. HEADER */}
@@ -96,13 +119,24 @@ export const AdminOrdersPage: React.FC = () => {
             <span>অর্ডার ও ট্র্যাকিং ব্যবস্থাপনা (Order Management)</span>
           </h1>
           <p className="text-xs text-[#64748B]">
-            ১০টি ধাপে অর্ডার ট্র্যাকিং, কুরিয়ার সার্ভিস নির্ধারণ ও লাইভ রিফান্ড প্রসেসিং
+            অর্ডার ট্র্যাকিং, বাতিল অর্ডার স্থায়ীভাবে মোছা ও স্বয়ংক্রিয় রিফান্ড নোটিফিকেশন সিস্টেম
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {cancelledOrdersList.length > 0 && (
+            <button
+              onClick={() => setShowBatchPurgeConfirm(true)}
+              className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-full border border-rose-200 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95"
+              title="সকল বাতিল অর্ডার ডাটাবেস থেকে মুছে ফেলুন"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              <span>বাতিল অর্ডার মুছুন ({cancelledOrdersList.length})</span>
+            </button>
+          )}
+
           <span className="text-xs font-bold bg-[#E8F7EC] text-[#006B35] px-3 py-1.5 rounded-full border border-emerald-200">
-            সর্বমোট {orders.length} টি অর্ডার ডাটাবেসে সংরক্ষিত
+            সর্বমোট {orders.length} টি অর্ডার ডাটাবেসে
           </span>
         </div>
       </div>
@@ -131,7 +165,7 @@ export const AdminOrdersPage: React.FC = () => {
             <option value="all">সকল স্ট্যাটাস (All Statuses)</option>
             {ALL_ORDER_STATUSES.map((st) => (
               <option key={st} value={st}>
-                {st}
+                {st} {st === 'Cancelled' ? `(${cancelledOrdersList.length})` : ''}
               </option>
             ))}
           </select>
@@ -168,7 +202,7 @@ export const AdminOrdersPage: React.FC = () => {
                 <th className="py-3">পেমেন্ট মেথড</th>
                 <th className="py-3">মোট প্রদেয়</th>
                 <th className="py-3">বর্তমান স্ট্যাটাস</th>
-                <th className="py-3 text-right">অ্যাকশন</th>
+                <th className="py-3 text-right">অ্যাকশন ও ডিলিট</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -215,7 +249,13 @@ export const AdminOrdersPage: React.FC = () => {
                     <select
                       value={ord.status}
                       onChange={(e) => updateOrderStatus(ord.id, e.target.value as OrderStatus)}
-                      className="p-1 rounded-lg border border-gray-300 bg-white font-bold text-xs text-[#006B35] focus:border-[#006B35]"
+                      className={`p-1 rounded-lg border font-bold text-xs focus:outline-hidden ${
+                        ord.status === 'Cancelled'
+                          ? 'border-rose-300 text-rose-700 bg-rose-50/60'
+                          : ord.status === 'Delivered'
+                          ? 'border-emerald-300 text-emerald-800 bg-emerald-50/60'
+                          : 'border-gray-300 text-[#006B35] bg-white'
+                      }`}
                     >
                       {ALL_ORDER_STATUSES.map((st) => (
                         <option key={st} value={st}>
@@ -225,13 +265,28 @@ export const AdminOrdersPage: React.FC = () => {
                     </select>
                   </td>
                   <td className="py-3.5 text-right">
-                    <button
-                      onClick={() => setSelectedOrder(ord)}
-                      className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#006B35] font-bold rounded-xl transition-colors inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>বিস্তারিত</span>
-                    </button>
+                    <div className="inline-flex items-center gap-1.5">
+                      <button
+                        onClick={() => setSelectedOrder(ord)}
+                        className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#006B35] font-bold rounded-xl transition-colors inline-flex items-center gap-1 cursor-pointer"
+                        title="অর্ডারের বিবরণ দেখুন"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>বিস্তারিত</span>
+                      </button>
+
+                      {/* Permanent Delete Option for Cancelled Orders */}
+                      {ord.status === 'Cancelled' && (
+                        <button
+                          onClick={() => setOrderToDelete(ord)}
+                          className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl transition-colors inline-flex items-center gap-1 cursor-pointer border border-rose-200"
+                          title="বাতিল অর্ডারটি স্থায়ীভাবে মুছে ফেলুন"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                          <span className="hidden sm:inline">মুছুন</span>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -251,7 +306,13 @@ export const AdminOrdersPage: React.FC = () => {
                   {selectedOrder.id}
                 </span>
                 <span className="text-gray-400 ml-2">({selectedOrder.date})</span>
-                <span className="ml-3 px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-800">
+                <span
+                  className={`ml-3 px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
+                    selectedOrder.status === 'Cancelled'
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}
+                >
                   {selectedOrder.status}
                 </span>
               </div>
@@ -405,14 +466,106 @@ export const AdminOrdersPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Close Button */}
-            <div className="pt-2 flex justify-end">
+            {/* Modal Bottom Action Bar */}
+            <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+              {/* Permanent Delete Option */}
+              {selectedOrder.status === 'Cancelled' ? (
+                <button
+                  type="button"
+                  onClick={() => setOrderToDelete(selectedOrder)}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>এই বাতিল অর্ডারটি স্থায়ীভাবে মুছুন</span>
+                </button>
+              ) : (
+                <div />
+              )}
+
               <button
                 type="button"
                 onClick={() => setSelectedOrder(null)}
                 className="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-xl cursor-pointer"
               >
                 বন্ধ করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. SINGLE CANCELLED ORDER PERMANENT DELETE CONFIRMATION MODAL */}
+      {orderToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 space-y-4 text-xs">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200">
+                <AlertTriangle className="w-6 h-6 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="font-black text-base text-gray-900">অর্ডার স্থায়ীভাবে মুছে ফেলতে চান?</h3>
+                <p className="text-gray-500 text-[11px] font-mono">আইডি: {orderToDelete.id}</p>
+              </div>
+            </div>
+
+            <p className="text-gray-600 leading-relaxed">
+              আপনি কি নিশ্চিত যে বাতিল অর্ডার <strong className="font-mono text-gray-900">{orderToDelete.id}</strong> ({orderToDelete.customer.name}, ৳{orderToDelete.totalAmount}) ডাটাবেস থেকে স্থায়ীভাবে মুছে ফেলতে চান? এই অ্যাকশনটি ফিরিয়ে আনা সম্ভব নয়।
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setOrderToDelete(null)}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold cursor-pointer"
+              >
+                বাতিল করুন
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePermanentDelete(orderToDelete)}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>হ্যাঁ, স্থায়ীভাবে মুছুন</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. BATCH PURGE ALL CANCELLED ORDERS CONFIRMATION MODAL */}
+      {showBatchPurgeConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 space-y-4 text-xs">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200">
+                <Trash2 className="w-6 h-6 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="font-black text-base text-gray-900">সকল বাতিল অর্ডার মুছবেন?</h3>
+                <p className="text-gray-500 text-[11px]">ডাটাবেস অপ্টিমাইজেশন ও স্থায়ী পরিচ্ছন্নতা</p>
+              </div>
+            </div>
+
+            <p className="text-gray-600 leading-relaxed">
+              বর্তমানে সর্বমোট <strong className="text-rose-600 font-bold">{cancelledOrdersList.length}টি বাতিল অর্ডার</strong> ডাটাবেসে রয়েছে। আপনি কি এই সকল বাতিল অর্ডার একসাথে স্থায়ীভাবে ডাটাবেস থেকে মুছে ফেলতে চান?
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowBatchPurgeConfirm(false)}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold cursor-pointer"
+              >
+                না, ফিরে যান
+              </button>
+              <button
+                type="button"
+                onClick={handleBatchPurge}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>হ্যাঁ, সব বাতিল অর্ডার মুছুন</span>
               </button>
             </div>
           </div>

@@ -47,56 +47,6 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* 1. COMPACT & FULL COVER HOMEPAGE BANNER WITH MULTICOLOR SLOGAN */}
-      <section className="max-w-xl sm:max-w-2xl mx-auto w-full relative overflow-hidden rounded-2xl sm:rounded-3xl border border-emerald-500/25 shadow-xs bg-white">
-        {/* Banner Image: Seamlessly covers the entire banner box area edge-to-edge */}
-        <div
-          className="relative w-full cursor-pointer overflow-hidden block"
-          onClick={() => navigateTo('categories')}
-          title="হাট বাজার - পণ্য দেখুন"
-        >
-          <img
-            src={websiteSettings?.heroBannerUrl || '/assets/haat_bazar_banner.png'}
-            alt="হাট বাজার ডট কম - Haat Bazar.com"
-            className="w-full h-auto object-cover block transition-transform duration-300 hover:scale-[1.01]"
-            loading="eager"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = '/assets/aistudio/Bangladeshi_Marketplace_Grocery_Banner_af4d101b.png';
-            }}
-          />
-        </div>
-
-        {/* Text Area: Exact Multicolor Slogan + Action Buttons Directly Underneath */}
-        <div className="bg-gradient-to-b from-white to-emerald-50/50 border-t border-emerald-100/80 px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col items-center justify-center text-center gap-2">
-          {/* Exact Multicolor Gradient Slogan as requested */}
-          <h2 className="font-black text-xs sm:text-sm md:text-base tracking-tight leading-snug">
-            <span className="bg-gradient-to-r from-[#007A3D] via-teal-600 to-amber-600 bg-clip-text text-transparent">
-              &ldquo;দেশীয় পণ্য গ্রহণ করুন,
-            </span>{' '}
-            <span className="bg-gradient-to-r from-amber-600 via-rose-600 to-[#007A3D] bg-clip-text text-transparent">
-              নিজের স্বাস্থ্য ও পরিবারকে সুস্থ রাখুন।&rdquo;
-            </span>
-          </h2>
-
-          {/* Buttons directly under the slogan: পণ্য কেনা এবং ট্র্যাকিং */}
-          <div className="flex items-center justify-center gap-2.5">
-            <button
-              onClick={() => navigateTo('categories')}
-              className="px-4 py-1.5 bg-[#007A3D] hover:bg-[#006030] text-white font-bold rounded-xl text-xs shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-            >
-              <span>পণ্য কেনা</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => navigateTo('order-tracking')}
-              className="px-4 py-1.5 bg-white hover:bg-gray-50 text-gray-800 font-semibold rounded-xl text-xs border border-gray-200 shadow-2xs transition-all cursor-pointer active:scale-95"
-            >
-              <span>ট্র্যাকিং</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
       {/* PRODUCT CATEGORIES GRID (Matches screenshot: 3 columns x 3 rows with watermark background) */}
       <section className="relative space-y-3 p-1">
         {/* Subtle Watermark Logo Background from Screenshot */}
