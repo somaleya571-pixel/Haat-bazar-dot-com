@@ -67,6 +67,34 @@
         "createdAt": { "type": "string" }
       },
       "required": ["id", "customerName", "customerPhone", "total", "status"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Registered customer profile with optional Facebook OAuth synchronization",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "division": { "type": "string" },
+        "district": { "type": "string" },
+        "upazila": { "type": "string" },
+        "thana": { "type": "string" },
+        "village": { "type": "string" },
+        "addressDetails": { "type": "string" },
+        "avatar": { "type": "string" },
+        "facebookId": { "type": "string" },
+        "facebookSynced": { "type": "boolean" },
+        "facebookSyncedAt": { "type": "string" },
+        "phoneVerified": { "type": "boolean" },
+        "phoneVerifiedAt": { "type": "string" },
+        "isManualAddress": { "type": "boolean" },
+        "manualAddress": { "type": "string" },
+        "status": { "type": "string" },
+        "joinedDate": { "type": "string" }
+      },
+      "required": ["id", "name", "phone", "district"]
     }
   },
   "firestore": {
@@ -81,6 +109,10 @@
     "/orders/{orderId}": {
       "schema": { "$ref": "#/entities/Order" },
       "description": "Purchased orders placed by customers"
+    },
+    "/customers/{customerId}": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "Verified customer profiles and registered accounts"
     }
   }
 }

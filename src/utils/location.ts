@@ -9,6 +9,86 @@ export interface LocationHierarchy {
   };
 }
 
+export interface DivisionInfo {
+  id: string;
+  name: string;
+  nameBn: string;
+  districts: string[];
+}
+
+export const BANGLADESH_DIVISIONS: Record<string, DivisionInfo> = {
+  Dhaka: {
+    id: 'Dhaka',
+    name: 'Dhaka',
+    nameBn: 'ঢাকা',
+    districts: [
+      'Dhaka', 'Gazipur', 'Narayanganj', 'Tangail', 'Kishoreganj',
+      'Manikganj', 'Munshiganj', 'Narsingdi', 'Faridpur', 'Gopalganj',
+      'Madaripur', 'Rajbari', 'Shariatpur'
+    ],
+  },
+  Chattogram: {
+    id: 'Chattogram',
+    name: 'Chattogram',
+    nameBn: 'চট্টগ্রাম',
+    districts: [
+      'Chittagong', 'CoxsBazar', 'Cumilla', 'Feni', 'Brahmanbaria',
+      'Noakhali', 'Chandpur', 'Lakshmipur', 'Bandarban', 'Khagrachhari', 'Rangamati'
+    ],
+  },
+  Rajshahi: {
+    id: 'Rajshahi',
+    name: 'Rajshahi',
+    nameBn: 'রাজশাহী',
+    districts: [
+      'Rajshahi', 'Bogura', 'Pabna', 'Sirajganj', 'Natore',
+      'Naogaon', 'ChapaiNawabganj', 'Joypurhat'
+    ],
+  },
+  Khulna: {
+    id: 'Khulna',
+    name: 'Khulna',
+    nameBn: 'খুলনা',
+    districts: [
+      'Khulna', 'Jessore', 'Satkhira', 'Jhenaidah', 'Magura',
+      'Narail', 'Kushtia', 'Chuadanga', 'Meherpur', 'Bagerhat'
+    ],
+  },
+  Barishal: {
+    id: 'Barishal',
+    name: 'Barishal',
+    nameBn: 'বরিশাল',
+    districts: [
+      'Barishal', 'Barguna', 'Bhola', 'Jhalokati', 'Patuakhali', 'Pirojpur'
+    ],
+  },
+  Sylhet: {
+    id: 'Sylhet',
+    name: 'Sylhet',
+    nameBn: 'সিলেট',
+    districts: [
+      'Sylhet', 'Moulvibazar', 'Habiganj', 'Sunamganj'
+    ],
+  },
+  Rangpur: {
+    id: 'Rangpur',
+    name: 'Rangpur',
+    nameBn: 'রংপুর',
+    districts: [
+      'Rangpur', 'Dinajpur', 'Kurigram', 'Gaibandha', 'Lalmonirhat',
+      'Nilphamari', 'Panchagarh', 'Thakurgaon'
+    ],
+  },
+  Mymensingh: {
+    id: 'Mymensingh',
+    name: 'Mymensingh',
+    nameBn: 'ময়মনসিংহ',
+    districts: [
+      'Mymensingh', 'Jamalpur', 'Netrokona', 'Sherpur'
+    ],
+  },
+};
+
 export const BANGLADESH_LOCATIONS: LocationHierarchy = {
   // Dhaka Division
   Dhaka: {
@@ -565,7 +645,14 @@ export const BANGLADESH_LOCATIONS: LocationHierarchy = {
   },
 };
 
-export function getDistricts(): string[] {
+export function getDivisions(): DivisionInfo[] {
+  return Object.values(BANGLADESH_DIVISIONS);
+}
+
+export function getDistricts(division?: string): string[] {
+  if (division && BANGLADESH_DIVISIONS[division]) {
+    return BANGLADESH_DIVISIONS[division].districts.slice().sort();
+  }
   return Object.keys(BANGLADESH_LOCATIONS).sort();
 }
 
@@ -585,6 +672,7 @@ export function getThanas(district: string, upazila: string): string[] {
 }
 
 export interface AddressPayload {
+  division?: string;
   district: string;
   upazila: string;
   thana: string;
@@ -592,6 +680,8 @@ export interface AddressPayload {
   addressDetails: string;
   recipientName?: string;
   phone?: string;
+  isManualAddress?: boolean;
+  manualAddress?: string;
 }
 
 export function validateDeliveryAddress(addr: Partial<AddressPayload>): {
@@ -599,6 +689,16 @@ export function validateDeliveryAddress(addr: Partial<AddressPayload>): {
   errors: Record<string, string>;
 } {
   const errors: Record<string, string> = {};
+
+  if (addr.isManualAddress) {
+    if (!addr.manualAddress || addr.manualAddress.trim().length < 10) {
+      errors.manualAddress = 'বিস্তারিত পূর্ণাঙ্গ ঠিকানা লিখুন (কমপক্ষে ১০ অক্ষর)';
+    }
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors,
+    };
+  }
 
   if (!addr.district || addr.district.trim() === '') {
     errors.district = 'জেলা নির্বাচন আবশ্যক (District is mandatory)';
@@ -617,11 +717,11 @@ export function validateDeliveryAddress(addr: Partial<AddressPayload>): {
   }
 
   if (!addr.village || addr.village.trim().length < 2) {
-    errors.village = 'গ্রামের নাম আবশ্যক (Village name is mandatory, min 2 chars)';
+    errors.village = 'গ্রাম / ইউনিয়ন / ওয়ার্ড নাম আবশ্যক (Village/Ward min 2 chars)';
   }
 
   if (!addr.addressDetails || addr.addressDetails.trim().length < 5) {
-    errors.addressDetails = 'বিস্তারিত ঠিকানা প্রদান করুন (Detailed address is mandatory, min 5 chars)';
+    errors.addressDetails = 'বিস্তারিত ঠিকানা প্রদান করুন (House/Road min 5 chars)';
   }
 
   return {

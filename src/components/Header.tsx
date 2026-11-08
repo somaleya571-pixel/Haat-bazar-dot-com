@@ -9,6 +9,7 @@ import {
   Globe,
   Bell,
   X,
+  User,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { BrandLogo } from './BrandLogo';
@@ -61,7 +62,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => navigateTo('welcome-register')}
+            className="flex items-center gap-1 hover:text-yellow-200 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            title="কাস্টমার প্রোফাইল নিবন্ধন"
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>{language === 'bn' ? 'প্রোফাইল নিবন্ধন' : 'Register'}</span>
+          </button>
+
           <button
             onClick={() => navigateTo('notifications')}
             className="flex items-center gap-1 hover:text-yellow-200 relative transition-colors"

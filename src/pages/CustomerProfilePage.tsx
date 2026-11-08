@@ -346,6 +346,41 @@ export const CustomerProfilePage: React.FC = () => {
       {/* 3. MENU CONTENT: 1) OVERVIEW */}
       {activeTab === 'overview' && (
         <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Facebook Sync & Registration Status Card */}
+          <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-white rounded-3xl p-5 border border-emerald-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-[#007A3D] text-white flex items-center justify-center shadow-xs shrink-0">
+                <Sparkles className="w-5 h-5 text-yellow-300" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-black text-sm text-gray-900">
+                    {customer.facebookSynced
+                      ? 'ফেসবুক প্রোফাইল সিঙ্ক সক্রিয়'
+                      : 'ফেসবুক প্রোফাইল সিঙ্ক ও রেজিস্ট্রেশন'}
+                  </h4>
+                  {customer.facebookSynced && (
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                      সংযুক্ত
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  {customer.facebookSynced
+                    ? `আইডি: ${customer.facebookId || 'Connected'} • নাম ও ছবি স্বয়ংক্রিয়ভাবে হালনাগাদ`
+                    : 'ওয়েলকাম ল্যান্ডিং পেজ থেকে অফিসিয়াল ফেসবুক সিঙ্কের মাধ্যমে দ্রুত নিবন্ধন করুন'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigateTo('welcome-register')}
+              className="px-4 py-2.5 bg-[#007A3D] hover:bg-[#005a2d] text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer"
+            >
+              {customer.facebookSynced ? 'তথ্য সংশোধন বা রি-সিঙ্ক' : 'ওয়েলকাম পেজে যান'}
+            </button>
+          </div>
+
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button

@@ -17,6 +17,7 @@ export type PageId =
   | 'notifications'
   | 'help-center'
   | 'privacy-terms'
+  | 'welcome-register'
   | 'admin-dashboard';
 
 export type AdminMenuTab =
@@ -99,6 +100,7 @@ export interface CustomerInfo {
   name: string;
   phone: string;
   email: string;
+  division?: string;
   district: string;
   upazila: string;
   thana: string;
@@ -108,6 +110,14 @@ export interface CustomerInfo {
   status?: 'Active' | 'Suspended';
   joinedDate?: string;
   totalSpent?: number;
+  // Facebook OAuth & Verification
+  facebookId?: string;
+  facebookSynced?: boolean;
+  facebookSyncedAt?: string;
+  phoneVerified?: boolean;
+  phoneVerifiedAt?: string;
+  isManualAddress?: boolean;
+  manualAddress?: string;
 }
 
 export interface OrderItem {

@@ -33,6 +33,13 @@ service cloud.firestore {
       allow write: if isValidId(orderId);
     }
 
+    // Customers (Verified customer profiles & Facebook synced accounts)
+    match /customers/{customerId} {
+      allow get: if isValidId(customerId);
+      allow list: if true;
+      allow write: if isValidId(customerId);
+    }
+
     // Couriers
     match /couriers/{courierId} {
       allow get: if isValidId(courierId);

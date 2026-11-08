@@ -25,6 +25,7 @@ import { CustomerServicePage } from './pages/CustomerServicePage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { HelpCenterPage } from './pages/HelpCenterPage';
 import { PrivacyPolicyTermsPage } from './pages/PrivacyPolicyTermsPage';
+import { WelcomeRegisterPage } from './pages/WelcomeRegisterPage';
 
 // Admin Panel
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
@@ -152,6 +153,8 @@ const MainContent: React.FC = () => {
         return <HelpCenterPage />;
       case 'privacy-terms':
         return <PrivacyPolicyTermsPage />;
+      case 'welcome-register':
+        return <WelcomeRegisterPage />;
       default:
         return <HomePage />;
     }
@@ -164,7 +167,9 @@ const MainContent: React.FC = () => {
 
       {/* Main Page Content with Mobile Viewport Safety & Professional Branding Banner across all main pages */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-28 sm:pb-12 viewport-padding-safe">
-        <BrandingBanner variant={currentPage === 'home' ? 'hero' : 'compact'} />
+        {currentPage !== 'welcome-register' && (
+          <BrandingBanner variant={currentPage === 'home' ? 'hero' : 'compact'} />
+        )}
         {renderCurrentPage()}
       </main>
 

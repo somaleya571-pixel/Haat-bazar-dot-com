@@ -60,7 +60,7 @@ import {
   setDoc,
   deleteDoc,
 } from 'firebase/firestore';
-import { db, OperationType, handleFirestoreError } from '../lib/firebase';
+import { db, OperationType, handleFirestoreError, sanitizeForFirestore } from '../lib/firebase';
 import { safeStorage } from '../utils/safeStorage';
 
 
@@ -141,6 +141,9 @@ interface ShopContextType {
   // Customers
   customer: CustomerInfo;
   updateCustomerProfile: (updated: Partial<CustomerInfo>) => void;
+  syncFacebookProfile: (profile: { facebookId: string; name: string; email?: string; avatar?: string }) => void;
+  unlinkFacebookProfile: () => void;
+  saveVerifiedCustomerProfile: (profileData: CustomerInfo) => { success: boolean; customer: CustomerInfo; message: string };
   customersList: CustomerInfo[];
   updateCustomerAccount: (customerId: string, updated: Partial<CustomerInfo>) => void;
   suspendCustomer: (customerId: string) => void;
@@ -1541,9 +1544,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     safeStorage.setJSON('hb_orders', [newOrder, ...orders]);
 
     // Synchronize to Firestore
-    setDoc(doc(db, 'orders', newOrder.id), newOrder).catch((err) => {
-      handleFirestoreError(err, OperationType.WRITE, `orders/${newOrder.id}`);
-    });
+    try {
+      const cleanOrder = sanitizeForFirestore(newOrder);
+      setDoc(doc(db, 'orders', newOrder.id), cleanOrder).catch((err) => {
+        console.warn('Firestore order sync offline:', err);
+      });
+    } catch (err) {
+      console.warn('Firestore sync skipped for order:', err);
+    }
 
     clearCart();
 
@@ -1713,8 +1721,144 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Customer Profile
   const updateCustomerProfile = (updated: Partial<CustomerInfo>) => {
-    setCustomer((prev) => ({ ...prev, ...updated }));
+    setCustomer((prev) => {
+      const merged = { ...prev, ...updated };
+      safeStorage.setJSON('hb_customer', merged);
+      if (merged.id) {
+        try {
+          const cleanCust = sanitizeForFirestore({
+            ...merged,
+            updatedAt: new Date().toISOString(),
+          });
+          setDoc(doc(db, 'customers', merged.id), cleanCust, { merge: true }).catch(() => {});
+        } catch (err) {
+          console.warn('Customer firestore update skipped:', err);
+        }
+      }
+      return merged;
+    });
     showToast(language === 'bn' ? 'প্রোফাইল তথ্য সফলভাবে সংরক্ষিত হয়েছে' : 'Profile information updated');
+  };
+
+  const syncFacebookProfile = (profile: {
+    facebookId: string;
+    name: string;
+    email?: string;
+    avatar?: string;
+  }) => {
+    setCustomer((prev) => {
+      const updated: CustomerInfo = {
+        ...prev,
+        // Populate available Facebook profile name
+        name: profile.name || prev.name,
+        // Populate email if provided by Facebook and permitted, do not invent missing information
+        email: profile.email ? profile.email : prev.email,
+        // Populate profile picture
+        avatar: profile.avatar || prev.avatar,
+        // Keep phone number blank or as-is until manually entered and verified
+        facebookId: profile.facebookId,
+        facebookSynced: true,
+        facebookSyncedAt: new Date().toISOString(),
+      };
+      safeStorage.setJSON('hb_customer', updated);
+      return updated;
+    });
+
+    logActivity('Facebook Profile Synced', 'Customers', `Facebook account synced: ${profile.name} (${profile.facebookId})`);
+    showToast(language === 'bn' ? 'ফেসবুক প্রোফাইল সফলভাবে সিঙ্ক হয়েছে!' : 'Facebook profile synced successfully!');
+  };
+
+  const unlinkFacebookProfile = () => {
+    setCustomer((prev) => {
+      const updated: CustomerInfo = {
+        ...prev,
+        facebookId: undefined,
+        facebookSynced: false,
+        facebookSyncedAt: undefined,
+      };
+      safeStorage.setJSON('hb_customer', updated);
+      if (updated.id) {
+        setDoc(doc(db, 'customers', updated.id), {
+          facebookId: null,
+          facebookSynced: false,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true }).catch(() => {});
+      }
+      return updated;
+    });
+
+    logActivity('Facebook Account Unlinked', 'Customers', 'Customer unlinked Facebook account');
+    showToast(language === 'bn' ? 'ফেসবুক অ্যাকাউন্ট সংযোগ বিচ্ছিন্ন করা হয়েছে।' : 'Facebook account unlinked.');
+  };
+
+  const saveVerifiedCustomerProfile = (profileData: CustomerInfo): { success: boolean; customer: CustomerInfo; message: string } => {
+    // 1. Prevent duplicate accounts: check by verified phone or facebookId
+    // CRITICAL: Never merge accounts solely because their email addresses match
+    const existingIndex = customersList.findIndex(
+      (c) => (profileData.phone && c.phone === profileData.phone) || (profileData.facebookId && c.facebookId === profileData.facebookId)
+    );
+
+    let customerId = profileData.id;
+    let updatedList: CustomerInfo[];
+
+    if (existingIndex >= 0) {
+      // Secure linking to existing account, keeping historical orders
+      customerId = customersList[existingIndex].id || `cust-${Date.now()}`;
+      const mergedCustomer: CustomerInfo = {
+        ...customersList[existingIndex],
+        ...profileData,
+        id: customerId,
+        status: customersList[existingIndex].status || 'Active',
+      };
+      updatedList = customersList.map((c, idx) => (idx === existingIndex ? mergedCustomer : c));
+      profileData = mergedCustomer;
+    } else {
+      // New unique customer record
+      if (!customerId) {
+        customerId = `cust-${Date.now()}`;
+      }
+      const newCustomer: CustomerInfo = {
+        ...profileData,
+        id: customerId,
+        joinedDate: profileData.joinedDate || new Date().toISOString().split('T')[0],
+        status: 'Active',
+      };
+      updatedList = [newCustomer, ...customersList];
+      profileData = newCustomer;
+    }
+
+    setCustomersList(updatedList);
+    safeStorage.setJSON('hb_customers_list', updatedList);
+
+    setCustomer(profileData);
+    safeStorage.setJSON('hb_customer', profileData);
+    setIsLoggedIn(true);
+    safeStorage.setItem('hb_logged_in', 'true');
+
+    // Save to Firestore customers/{customerId}
+    if (customerId) {
+      try {
+        const cleanCustomerData = sanitizeForFirestore({
+          ...profileData,
+          updatedAt: new Date().toISOString(),
+        });
+
+        setDoc(doc(db, 'customers', customerId), cleanCustomerData, { merge: true }).catch((err) => {
+          console.warn('Firestore customer sync offline/pending:', err);
+        });
+      } catch (err) {
+        console.warn('Customer Firestore sync skipped:', err);
+      }
+    }
+
+    logActivity('Customer Profile Saved', 'Customers', `Verified profile saved: ${profileData.name} (${profileData.phone})`, customerId);
+    showToast(language === 'bn' ? 'গ্রাহক তথ্য সফলভাবে সংরক্ষিত ও ডাটাবেজে যুক্ত হয়েছে!' : 'Customer profile saved and verified!');
+
+    return {
+      success: true,
+      customer: profileData,
+      message: 'Profile verified and saved successfully',
+    };
   };
 
   // Returns
@@ -1801,6 +1945,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getOrderById,
         customer,
         updateCustomerProfile,
+        syncFacebookProfile,
+        unlinkFacebookProfile,
+        saveVerifiedCustomerProfile,
         customersList,
         updateCustomerAccount,
         suspendCustomer,

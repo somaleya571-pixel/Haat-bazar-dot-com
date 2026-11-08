@@ -1,20 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Truck,
   Lock,
   MapPin,
   Ticket,
+  CheckCircle2,
+  X,
+  Phone,
+  User,
+  AlertCircle,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { SearchableDropdown } from '../components/SearchableDropdown';
 import {
+  getDivisions,
   getDistricts,
   getUpazilas,
   getThanas,
   validateDeliveryAddress,
   isInsideDhaka,
 } from '../utils/location';
+import { validateBangladeshPhoneNumber } from '../utils/phoneValidation';
 import { formatCurrency, calculateEffectivePrice, calculateCourierDeliveryCharge } from '../utils/pricing';
 
 export const CheckoutPage: React.FC = () => {
@@ -36,17 +43,38 @@ export const CheckoutPage: React.FC = () => {
     removeCoupon,
   } = useShop();
 
-  // Customer Contact Fields
+  // Customer Contact Fields (Prefilled from customer profile per Requirement G)
   const [name, setName] = useState(customer.name || '');
   const [phone, setPhone] = useState(customer.phone || '');
   const [email, setEmail] = useState(customer.email || '');
 
-  // Address Fields
+  // Address Fields (Prefilled & editable per Requirement G)
+  const [division, setDivision] = useState(customer.division || '');
   const [district, setDistrict] = useState(customer.district || 'Dhaka');
   const [upazila, setUpazila] = useState(customer.upazila || 'Dhanmondi');
   const [thana, setThana] = useState(customer.thana || 'Dhanmondi Thana');
   const [village, setVillage] = useState(customer.village || 'Road 8/A');
   const [addressDetails, setAddressDetails] = useState(customer.addressDetails || 'House 34, Flat 5A');
+  const [isManualAddress, setIsManualAddress] = useState(customer.isManualAddress || false);
+  const [manualAddress, setManualAddress] = useState(customer.manualAddress || '');
+
+  // Explicit Order Confirmation Modal state per Requirement G
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Automatically prefill previously saved customer information during checkout
+  useEffect(() => {
+    if (customer.name && !name) setName(customer.name);
+    if (customer.phone && !phone) setPhone(customer.phone);
+    if (customer.email && !email) setEmail(customer.email);
+    if (customer.division && !division) setDivision(customer.division);
+    if (customer.district && (!district || district === 'Dhaka')) setDistrict(customer.district);
+    if (customer.upazila && (!upazila || upazila === 'Dhanmondi')) setUpazila(customer.upazila);
+    if (customer.thana && (!thana || thana === 'Dhanmondi Thana')) setThana(customer.thana);
+    if (customer.village && (!village || village === 'Road 8/A')) setVillage(customer.village);
+    if (customer.addressDetails && (!addressDetails || addressDetails === 'House 34, Flat 5A')) setAddressDetails(customer.addressDetails);
+    if (customer.isManualAddress !== undefined) setIsManualAddress(customer.isManualAddress);
+    if (customer.manualAddress) setManualAddress(customer.manualAddress);
+  }, [customer]);
 
   // Active Couriers
   const activeCouriers = couriers.filter((c) => c.isActive);
@@ -129,8 +157,9 @@ export const CheckoutPage: React.FC = () => {
       newErrors.name = 'গ্রাহকের পুরো নাম আবশ্যক (Full name min 3 chars)';
     }
 
-    if (!phone.trim() || !/^01[3-9]\d{8}$/.test(phone.trim().replace(/\D/g, ''))) {
-      newErrors.phone = 'সঠিক ১১ সংখ্যার বাংলাদেশি মোবাইল নম্বর দিন (যেমন: 01712345678)';
+    const phoneCheck = validateBangladeshPhoneNumber(phone);
+    if (!phoneCheck.isValid) {
+      newErrors.phone = phoneCheck.errorBn || 'সঠিক ১১ সংখ্যার বাংলাদেশি মোবাইল নম্বর দিন (যেমন: 01712345678)';
     }
 
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -139,11 +168,14 @@ export const CheckoutPage: React.FC = () => {
 
     // Validate Address via Location utility
     const addressValidation = validateDeliveryAddress({
+      division,
       district,
       upazila,
       thana,
       village,
       addressDetails,
+      isManualAddress,
+      manualAddress,
     });
 
     if (!addressValidation.isValid) {
@@ -167,18 +199,27 @@ export const CheckoutPage: React.FC = () => {
     }
 
     setErrors({});
+    // Requirement G: Require explicit order confirmation before placing an order
+    setShowConfirmModal(true);
+  };
+
+  const executePlaceOrder = () => {
     setIsSubmitting(true);
+    setShowConfirmModal(false);
 
     // Save customer info
     updateCustomerProfile({
-      name,
-      phone,
-      email,
-      district,
-      upazila,
-      thana,
-      village,
-      addressDetails,
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      division,
+      district: isManualAddress ? 'অন্যান্য' : district,
+      upazila: isManualAddress ? 'অন্যান্য' : upazila,
+      thana: isManualAddress ? 'অন্যান্য' : thana,
+      village: isManualAddress ? 'অন্যান্য' : village.trim(),
+      addressDetails: isManualAddress ? manualAddress.trim() : addressDetails.trim(),
+      isManualAddress,
+      manualAddress: isManualAddress ? manualAddress.trim() : undefined,
     });
 
     // Format Order Items
@@ -206,14 +247,17 @@ export const CheckoutPage: React.FC = () => {
 
     const createdOrder = placeOrder({
       customer: {
-        name,
-        phone,
-        email,
-        district,
-        upazila,
-        thana,
-        village,
-        addressDetails,
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        division,
+        district: isManualAddress ? 'অন্যান্য' : district,
+        upazila: isManualAddress ? 'অন্যান্য' : upazila,
+        thana: isManualAddress ? 'অন্যান্য' : thana,
+        village: isManualAddress ? 'অন্যান্য' : village.trim(),
+        addressDetails: isManualAddress ? manualAddress.trim() : addressDetails.trim(),
+        isManualAddress,
+        manualAddress: isManualAddress ? manualAddress.trim() : undefined,
       },
       items: orderItems,
       subtotal: cartTotals.subtotal,
@@ -747,6 +791,111 @@ export const CheckoutPage: React.FC = () => {
           </div>
         </div>
       </form>
+
+      {/* Explicit Order Confirmation Modal (Requirement G) */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2 text-[#006B35]">
+                <CheckCircle2 className="w-5 h-5 text-[#006B35]" />
+                <h3 className="font-bold text-base text-gray-900">
+                  অর্ডার চূড়ান্ত নিশ্চিতকরণ (Order Confirmation)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-600 leading-relaxed">
+              অনুগ্রহ করে আপনার ডেলিভারি ঠিকানা ও অর্ডারের বিবরণ পরীক্ষা করে নিশ্চিত করুন:
+            </p>
+
+            {/* Customer & Address Details */}
+            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200/80 text-xs space-y-2">
+              <div className="flex items-center gap-2 text-gray-900 font-bold">
+                <User className="w-3.5 h-3.5 text-[#006B35]" />
+                <span>প্রাপকের নাম: {name}</span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-900 font-bold">
+                <Phone className="w-3.5 h-3.5 text-[#006B35]" />
+                <span className="font-mono">মোবাইল: {phone}</span>
+              </div>
+              <div className="flex items-start gap-2 text-gray-700 pt-1 border-t border-gray-200">
+                <MapPin className="w-3.5 h-3.5 text-[#006B35] shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block text-gray-900">ডেলিভারি ঠিকানা:</span>
+                  {isManualAddress ? (
+                    <p className="text-gray-800">{manualAddress}</p>
+                  ) : (
+                    <p className="text-gray-800">
+                      {addressDetails}, {village}, {thana}, {upazila}, {district}
+                      {division ? `, ${division} বিভাগ` : ''}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Courier & Payment */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100">
+                <span className="text-gray-500 block text-[10px]">কুরিয়ার সার্ভিস</span>
+                <span className="font-bold text-emerald-950">{selectedCourier.name}</span>
+              </div>
+              <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100">
+                <span className="text-gray-500 block text-[10px]">পেমেন্ট মাধ্যম</span>
+                <span className="font-bold text-emerald-950">{paymentMethod}</span>
+              </div>
+            </div>
+
+            {/* Items Summary */}
+            <div className="space-y-1 pt-1 text-xs">
+              <span className="font-bold text-gray-800 block text-[11px]">আইটেম সারসংক্ষেপ ({cart.length} টি পণ্য):</span>
+              <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                {cart.map((item) => (
+                  <div key={item.productId} className="flex items-center justify-between py-1 border-b border-gray-100 text-gray-700">
+                    <span className="truncate max-w-[200px]">{item.product.nameBn} × {item.quantity}</span>
+                    <span className="font-bold">৳{item.product.regularPrice * item.quantity}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Total */}
+            <div className="p-3 bg-[#006B35]/10 rounded-2xl flex items-center justify-between text-xs">
+              <span className="font-bold text-gray-900">সর্বমোট প্রদেয় মূল্য:</span>
+              <span className="text-base font-black text-[#006B35]">
+                {formatCurrency(finalOrderTotal, language)}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="w-1/2 py-2.5 border border-gray-300 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-50 cursor-pointer"
+              >
+                তথ্য পরিবর্তন (Edit)
+              </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={executePlaceOrder}
+                className="w-1/2 py-2.5 bg-[#006B35] hover:bg-[#005228] text-white text-xs font-bold rounded-xl shadow-md disabled:opacity-60 cursor-pointer"
+              >
+                {isSubmitting ? 'প্রসেসিং...' : 'হ্যাঁ, কনফার্ম করুন'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
