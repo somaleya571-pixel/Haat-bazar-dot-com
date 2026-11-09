@@ -37,7 +37,7 @@ const Footer: React.FC = () => {
   const { navigateTo, officialContact } = useShop();
 
   return (
-    <footer className="bg-white border-t border-gray-200 mt-12 mb-16 text-xs text-gray-600">
+    <footer className="bg-white dark:bg-[#141f17] border-t border-gray-200 dark:border-gray-800 mt-12 mb-16 text-xs text-gray-600 dark:text-gray-400">
       <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         {/* Brand: Replaceable Logo Component */}
         <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
@@ -154,22 +154,20 @@ const MainContent: React.FC = () => {
       case 'privacy-terms':
         return <PrivacyPolicyTermsPage />;
       case 'welcome-register':
-        return <WelcomeRegisterPage />;
+        return <CustomerProfilePage />;
       default:
         return <HomePage />;
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f7faf8] text-gray-900">
+    <div className="min-h-screen flex flex-col bg-[#f7faf8] dark:bg-[#0c140f] text-gray-900 dark:text-gray-100 transition-colors">
       {/* Header with Hotline, Logo, Search, Menu */}
       <Header onOpenDrawer={() => setIsDrawerOpen(true)} />
 
       {/* Main Page Content with Mobile Viewport Safety & Professional Branding Banner across all main pages */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-28 sm:pb-12 viewport-padding-safe">
-        {currentPage !== 'welcome-register' && (
-          <BrandingBanner variant={currentPage === 'home' ? 'hero' : 'compact'} />
-        )}
+        <BrandingBanner variant={currentPage === 'home' ? 'hero' : 'compact'} />
         {renderCurrentPage()}
       </main>
 

@@ -10,6 +10,8 @@ import {
   Bell,
   X,
   User,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { BrandLogo } from './BrandLogo';
@@ -24,6 +26,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
     navigateTo,
     language,
     toggleLanguage,
+    theme,
+    toggleTheme,
+    customer,
     cart,
     wishlist,
     notifications,
@@ -63,13 +68,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Customer Profile Navigation Button */}
           <button
-            onClick={() => navigateTo('welcome-register')}
-            className="flex items-center gap-1 hover:text-yellow-200 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-            title="কাস্টমার প্রোফাইল নিবন্ধন"
+            onClick={() => navigateTo('profile')}
+            className="flex items-center gap-1.5 hover:text-yellow-200 text-xs font-bold px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 transition-all cursor-pointer shadow-xs"
+            title="আমার প্রোফাইল ও অ্যাকাউন্ট"
           >
             <User className="w-3.5 h-3.5" />
-            <span>{language === 'bn' ? 'প্রোফাইল নিবন্ধন' : 'Register'}</span>
+            <span className="max-w-[120px] truncate">
+              {customer.name || (language === 'bn' ? 'আমার প্রোফাইল' : 'Profile')}
+            </span>
           </button>
 
           <button
@@ -96,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 space-y-2">
-        {/* ROW 1: Search Bar & Language Pill (Admin Dashboard completely removed from customer view as requested) */}
+        {/* ROW 1: Search Bar, Theme Toggle & Language Pill */}
         <div className="flex flex-col sm:flex-row items-center gap-2">
           {/* Search Bar */}
           <form onSubmit={handleSearchSubmit} className="relative w-full flex-1">
@@ -123,17 +131,37 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDrawer }) => {
             )}
             <button
               type="submit"
-              className="absolute right-1 top-1 bottom-1 px-3 sm:px-4 bg-[#007A3D] hover:bg-[#006030] text-white rounded-full text-xs font-bold flex items-center justify-center transition-colors"
+              className="absolute right-1 top-1 bottom-1 px-3 sm:px-4 bg-[#007A3D] hover:bg-[#006030] text-white rounded-full text-xs font-bold flex items-center justify-center transition-colors cursor-pointer"
             >
               {language === 'bn' ? 'Search' : 'Search'}
             </button>
           </form>
 
-          {/* Language Switcher */}
+          {/* Theme & Language Controls */}
           <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            {/* Theme Toggle Button (Light Mode / Dark Mode) */}
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 hover:border-[#007A3D] text-gray-800 dark:text-gray-100 transition-colors bg-white dark:bg-[#141f17] shadow-2xs cursor-pointer"
+              title={theme === 'dark' ? 'ব্রাইট মোড করুন' : 'ডার্ক মোড করুন'}
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="font-bold text-amber-400">লাইট</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-indigo-600" />
+                  <span className="font-bold text-gray-700">ডার্ক</span>
+                </>
+              )}
+            </button>
+
+            {/* Language Switcher */}
             <button
               onClick={toggleLanguage}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#007A3D]/40 text-gray-800 hover:border-[#007A3D] hover:text-[#007A3D] transition-colors bg-white shadow-2xs"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#007A3D]/40 text-gray-800 hover:border-[#007A3D] hover:text-[#007A3D] transition-colors bg-white shadow-2xs cursor-pointer"
               title="Toggle Language"
             >
               <Globe className="w-3.5 h-3.5 text-[#007A3D]" />

@@ -110,6 +110,8 @@ export interface CustomerInfo {
   status?: 'Active' | 'Suspended';
   joinedDate?: string;
   totalSpent?: number;
+  totalOrders?: number;
+  lastOrderDate?: string;
   // Facebook OAuth & Verification
   facebookId?: string;
   facebookSynced?: boolean;

@@ -136,6 +136,7 @@ interface ShopContextType {
   updateOrderPaymentStatus: (orderId: string, status: Order['paymentStatus']) => void;
   deleteOrder: (orderId: string) => void;
   deleteCancelledOrders: () => number;
+  cancelCustomerOrder: (orderId: string, reason?: string) => void;
   getOrderById: (orderId: string) => Order | undefined;
 
   // Customers
@@ -237,33 +238,26 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [adminTab, setAdminTab] = useState<AdminMenuTab>('dashboard');
   const [language, setLanguage] = useState<'bn' | 'en'>('bn');
 
-  // Theme: Bright, Radiant Light Mode by Default
+  // Theme: Toggle properly between light and dark modes across the entire app
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = safeStorage.getItem('hb_theme');
-    // If previously saved as dark, reset to light mode as requested by user
-    if (saved === 'dark') {
-      safeStorage.setItem('hb_theme', 'light');
-      return 'light';
-    }
     return saved === 'dark' ? 'dark' : 'light';
   });
 
   useEffect(() => {
     safeStorage.setItem('hb_theme', theme);
+    const root = document.documentElement;
+    const body = document.body;
     if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.body.classList.add('dark');
+      root.classList.add('dark');
+      body.classList.add('dark');
+      root.style.colorScheme = 'dark';
     } else {
-      document.documentElement.classList.remove('dark');
-      document.body.classList.remove('dark');
+      root.classList.remove('dark');
+      body.classList.remove('dark');
+      root.style.colorScheme = 'light';
     }
   }, [theme]);
-
-  // Clean up any stale dark classes on initial render
-  useEffect(() => {
-    document.documentElement.classList.remove('dark');
-    document.body.classList.remove('dark');
-  }, []);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
@@ -282,23 +276,26 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 3200);
   };
 
-  // Customer Auth
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    const saved = safeStorage.getItem('hb_logged_in');
-    return saved !== null ? saved === 'true' : true;
-  });
+  // Customer Auth - Logged in by default since login options are removed
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
 
   const login = (phoneOrEmail?: string) => {
     setIsLoggedIn(true);
     safeStorage.setItem('hb_logged_in', 'true');
-    if (phoneOrEmail) {
+    if (phoneOrEmail && phoneOrEmail.trim()) {
       setCustomer((prev) => ({
         ...prev,
         phone: phoneOrEmail.includes('@') ? prev.phone : phoneOrEmail,
         email: phoneOrEmail.includes('@') ? phoneOrEmail : prev.email,
+        name: prev.name || 'সম্মানিত অতিথি (Guest)',
+      }));
+    } else {
+      setCustomer((prev) => ({
+        ...prev,
+        name: prev.name || 'সম্মানিত অতিথি (Guest)',
       }));
     }
-    showToast(language === 'bn' ? 'সফলভাবে লগইন সম্পন্ন হয়েছে!' : 'Successfully logged in!');
+    showToast(language === 'bn' ? 'সফলভাবে লগইন সম্পন্ন হয়েছে! প্রোফাইল তথ্য পূরণ বা আপডেট করুন।' : 'Logged in successfully! You can now update your profile.');
   };
 
   const logout = () => {
@@ -1232,9 +1229,19 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     safeStorage.setJSON('hb_cart', cart);
   }, [cart]);
 
-  // Wishlist
+  // Wishlist - Clean slate without dummy items
   const [wishlist, setWishlist] = useState<string[]>(() => {
-    return safeStorage.getJSON('hb_wishlist', ['hb-prod-1', 'hb-prod-5']);
+    const saved = safeStorage.getJSON<string[]>('hb_wishlist', []);
+    if (
+      Array.isArray(saved) &&
+      saved.length === 2 &&
+      saved.includes('hb-prod-1') &&
+      saved.includes('hb-prod-5')
+    ) {
+      safeStorage.setJSON('hb_wishlist', []);
+      return [];
+    }
+    return Array.isArray(saved) ? saved : [];
   });
 
   useEffect(() => {
@@ -1273,9 +1280,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     safeStorage.setJSON('hb_orders', orders);
   }, [orders]);
 
-  // Customer Profile
+  // Customer Profile - Clean slate for user, fully editable post-login
   const [customer, setCustomer] = useState<CustomerInfo>(() => {
-    return safeStorage.getJSON('hb_customer', INITIAL_CUSTOMER);
+    const saved = safeStorage.getJSON<CustomerInfo>('hb_customer', INITIAL_CUSTOMER);
+    if (saved?.name === 'Md. Sahabull Islam' || saved?.phone === '01712345678') {
+      safeStorage.setJSON('hb_customer', INITIAL_CUSTOMER);
+      return INITIAL_CUSTOMER;
+    }
+    return saved || INITIAL_CUSTOMER;
   });
 
   useEffect(() => {
@@ -1316,9 +1328,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast('রিভিউ স্ট্যাটাস হালনাগাদ হয়েছে');
   };
 
-  // Notifications
+  // Notifications - Clean slate without dummy samples
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
-    return safeStorage.getJSON('hb_notifications', INITIAL_NOTIFICATIONS);
+    const saved = safeStorage.getJSON<AppNotification[]>('hb_notifications', []);
+    if (Array.isArray(saved) && saved.some((n) => n.id?.startsWith('notif-1') || n.id?.startsWith('notif-2'))) {
+      safeStorage.setJSON('hb_notifications', []);
+      return [];
+    }
+    return Array.isArray(saved) ? saved : [];
   });
 
   useEffect(() => {
@@ -1466,6 +1483,26 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Customer Profile Update Function
+  const updateCustomerProfile = (updated: Partial<CustomerInfo>) => {
+    setCustomer((prev) => {
+      const merged = { ...prev, ...updated, id: prev.id || updated.id || 'cust-current' };
+      safeStorage.setJSON('hb_customer', merged);
+      if (merged.id) {
+        try {
+          const cleanCust = sanitizeForFirestore({
+            ...merged,
+            updatedAt: new Date().toISOString(),
+          });
+          setDoc(doc(db, 'customers', merged.id), cleanCust, { merge: true }).catch(() => {});
+        } catch (err) {
+          console.warn('Customer firestore update skipped:', err);
+        }
+      }
+      return merged;
+    });
+  };
+
   // Orders
   const placeOrder = (orderData: Omit<Order, 'id' | 'date' | 'status' | 'trackingHistory'>): Order => {
     const newOrderId = generateOrderId();
@@ -1542,6 +1579,73 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setOrders((prev) => [newOrder, ...prev]);
     safeStorage.setJSON('hb_orders', [newOrder, ...orders]);
+
+    // Automatically update customer profile with details entered during order:
+    // নাম, ফোন নম্বর, জিমেইল অ্যাড্রেস এবং যাবতীয় ঠিকানা
+    if (orderData.customer) {
+      updateCustomerProfile({
+        name: orderData.customer.name,
+        phone: orderData.customer.phone,
+        email: orderData.customer.email,
+        division: orderData.customer.division,
+        district: orderData.customer.district,
+        upazila: orderData.customer.upazila,
+        thana: orderData.customer.thana,
+        village: orderData.customer.village,
+        addressDetails: orderData.customer.addressDetails,
+        isManualAddress: orderData.customer.isManualAddress,
+        manualAddress: orderData.customer.manualAddress,
+      });
+
+      // Synchronize into customer directory (customersList)
+      setCustomersList((prev) => {
+        const idx = prev.findIndex(
+          (c) =>
+            (orderData.customer.phone && c.phone === orderData.customer.phone) ||
+            (orderData.customer.email && c.email === orderData.customer.email)
+        );
+        if (idx >= 0) {
+          const existing = prev[idx];
+          const updated: CustomerInfo = {
+            ...existing,
+            name: orderData.customer.name || existing.name,
+            phone: orderData.customer.phone || existing.phone,
+            email: orderData.customer.email || existing.email,
+            division: orderData.customer.division || existing.division,
+            district: orderData.customer.district || existing.district,
+            upazila: orderData.customer.upazila || existing.upazila,
+            thana: orderData.customer.thana || existing.thana,
+            village: orderData.customer.village || existing.village,
+            addressDetails: orderData.customer.addressDetails || existing.addressDetails,
+            totalOrders: (existing.totalOrders || 0) + 1,
+            totalSpent: (existing.totalSpent || 0) + newOrder.totalAmount,
+            lastOrderDate: nowStr,
+          };
+          const next = [...prev];
+          next[idx] = updated;
+          return next;
+        } else {
+          const newCust: CustomerInfo = {
+            id: `cust-${Date.now()}`,
+            name: orderData.customer.name,
+            phone: orderData.customer.phone,
+            email: orderData.customer.email,
+            division: orderData.customer.division,
+            district: orderData.customer.district,
+            upazila: orderData.customer.upazila,
+            thana: orderData.customer.thana,
+            village: orderData.customer.village,
+            addressDetails: orderData.customer.addressDetails,
+            totalOrders: 1,
+            totalSpent: newOrder.totalAmount,
+            lastOrderDate: nowStr,
+            status: 'Active',
+            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+          };
+          return [newCust, ...prev];
+        }
+      });
+    }
 
     // Synchronize to Firestore
     try {
@@ -1714,31 +1818,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return count;
   };
 
+  const cancelCustomerOrder = (orderId: string, reason?: string) => {
+    const cancelReasonNote = reason ? `গ্রাহক কর্তৃক বাতিল: ${reason}` : 'গ্রাহক কর্তৃক অর্ডার বাতিল করা হয়েছে';
+    updateOrderStatus(orderId, 'Cancelled', cancelReasonNote);
+    logActivity('Customer Order Cancelled', 'Orders', `Customer cancelled pending order ${orderId}. Reason: ${reason || 'N/A'}`, orderId);
+    showToast(language === 'bn' ? 'অর্ডারটি সফলভাবে বাতিল করা হয়েছে' : 'Order cancelled successfully');
+  };
 
   const getOrderById = (orderId: string) => {
     return orders.find((o) => o.id === orderId);
   };
 
-  // Customer Profile
-  const updateCustomerProfile = (updated: Partial<CustomerInfo>) => {
-    setCustomer((prev) => {
-      const merged = { ...prev, ...updated };
-      safeStorage.setJSON('hb_customer', merged);
-      if (merged.id) {
-        try {
-          const cleanCust = sanitizeForFirestore({
-            ...merged,
-            updatedAt: new Date().toISOString(),
-          });
-          setDoc(doc(db, 'customers', merged.id), cleanCust, { merge: true }).catch(() => {});
-        } catch (err) {
-          console.warn('Customer firestore update skipped:', err);
-        }
-      }
-      return merged;
-    });
-    showToast(language === 'bn' ? 'প্রোফাইল তথ্য সফলভাবে সংরক্ষিত হয়েছে' : 'Profile information updated');
-  };
+
 
   const syncFacebookProfile = (profile: {
     facebookId: string;
@@ -1942,6 +2033,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateOrderPaymentStatus,
         deleteOrder,
         deleteCancelledOrders,
+        cancelCustomerOrder,
         getOrderById,
         customer,
         updateCustomerProfile,

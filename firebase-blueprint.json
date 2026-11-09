@@ -92,7 +92,9 @@
         "isManualAddress": { "type": "boolean" },
         "manualAddress": { "type": "string" },
         "status": { "type": "string" },
-        "joinedDate": { "type": "string" }
+        "joinedDate": { "type": "string" },
+        "totalOrders": { "type": "number" },
+        "lastOrderDate": { "type": "string" }
       },
       "required": ["id", "name", "phone", "district"]
     }

@@ -10,15 +10,22 @@ import {
   AlertCircle,
   ArrowLeft,
   Search,
+  XCircle,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { formatCurrency } from '../utils/pricing';
+import { Order } from '../types';
 
 export const MyOrdersPage: React.FC = () => {
-  const { orders, navigateTo, language } = useShop();
+  const { orders, navigateTo, language, cancelCustomerOrder } = useShop();
 
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchId, setSearchId] = useState<string>('');
+  const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>('ভুল পণ্য অর্ডার করেছিলাম');
+  const [customReason, setCustomReason] = useState<string>('');
 
   const tabs = [
     { id: 'all', labelBn: 'সকল অর্ডার', labelEn: 'All Orders' },
@@ -224,6 +231,21 @@ export const MyOrdersPage: React.FC = () => {
                     <span>রসিদ</span>
                   </button>
 
+                  {(order.status === 'Pending' || order.status === 'New Order') && (
+                    <button
+                      onClick={() => {
+                        setCancellingOrder(order);
+                        setCancelReason('ভুল পণ্য অর্ডার করেছিলাম');
+                        setCustomReason('');
+                      }}
+                      className="px-3 py-1.5 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                      title="পেন্ডিং অর্ডার বাতিল করুন"
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      <span>অর্ডার বাতিল</span>
+                    </button>
+                  )}
+
                   {order.status === 'Delivered' && (
                     <>
                       <button
@@ -251,6 +273,91 @@ export const MyOrdersPage: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Customer Order Cancellation Modal */}
+      {cancellingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-[#141f17] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+              <div className="flex items-center gap-2 text-rose-600">
+                <AlertTriangle className="w-5 h-5" />
+                <h3 className="font-bold text-base text-gray-900 dark:text-gray-100">অর্ডার বাতিল নিশ্চিতকরণ</h3>
+              </div>
+              <button
+                onClick={() => setCancellingOrder(null)}
+                className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl text-xs space-y-1">
+              <p className="flex justify-between">
+                <span className="text-gray-500">অর্ডার আইডি:</span>
+                <span className="font-mono font-bold text-[#007A3D]">{cancellingOrder.id}</span>
+              </p>
+              <p className="flex justify-between">
+                <span className="text-gray-500">মোট মূল্য:</span>
+                <span className="font-bold text-gray-900 dark:text-gray-100">{formatCurrency(cancellingOrder.totalAmount, language)}</span>
+              </p>
+              <p className="flex justify-between">
+                <span className="text-gray-500">পণ্য সংখ্যা:</span>
+                <span className="text-gray-800 dark:text-gray-200">{cancellingOrder.items.length} টি আইটেম</span>
+              </p>
+            </div>
+
+            <div className="space-y-1.5 text-xs">
+              <label className="font-bold text-gray-700 dark:text-gray-300">অর্ডার বাতিলের কারণ নির্বাচন করুন:</label>
+              <select
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-gray-600 focus:border-[#007A3D] outline-hidden bg-white dark:bg-[#1a271e]"
+              >
+                <option value="ভুল পণ্য অর্ডার করেছিলাম">ভুল পণ্য অর্ডার করেছিলাম</option>
+                <option value="ডেলিভারি ঠিকানা পরিবর্তন করতে হবে">ডেলিভারি ঠিকানা পরিবর্তন করতে হবে</option>
+                <option value="পেমেন্ট পদ্ধতিতে পরিবর্তন চাই">পেমেন্ট পদ্ধতিতে পরিবর্তন চাই</option>
+                <option value="দেরি হবে মনে হচ্ছে">দেরি হবে মনে হচ্ছে</option>
+                <option value="অন্যান্য কারণ">অন্যান্য কারণ</option>
+              </select>
+
+              {cancelReason === 'অন্যান্য কারণ' && (
+                <input
+                  type="text"
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  placeholder="সংক্ষেপে কারণ লিখুন..."
+                  className="w-full p-2 rounded-xl border border-gray-300 dark:border-gray-600 focus:border-[#007A3D] outline-hidden mt-1 text-xs"
+                />
+              )}
+            </div>
+
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              পেন্ডিং অর্ডার বাতিল করলে আপনার কোনো চার্জ কাটা হবে না। নিশ্চিত করতে নিচের বাটনে চাপ দিন।
+            </p>
+
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setCancellingOrder(null)}
+                className="w-1/2 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+              >
+                অর্ডার রাখুন (Back)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const finalReason = cancelReason === 'অন্যান্য কারণ' && customReason.trim() ? customReason.trim() : cancelReason;
+                  cancelCustomerOrder(cancellingOrder.id, finalReason);
+                  setCancellingOrder(null);
+                }}
+                className="w-1/2 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                বাতিল নিশ্চিত করুন
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

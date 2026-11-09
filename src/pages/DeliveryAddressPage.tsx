@@ -13,26 +13,26 @@ import {
 export const DeliveryAddressPage: React.FC = () => {
   const { customer, updateCustomerProfile, navigateTo, language, showToast } = useShop();
 
-  const [district, setDistrict] = useState(customer.district || 'Dhaka');
-  const [upazila, setUpazila] = useState(customer.upazila || 'Dhanmondi');
-  const [thana, setThana] = useState(customer.thana || 'Dhanmondi Thana');
-  const [village, setVillage] = useState(customer.village || 'Road 8/A');
-  const [addressDetails, setAddressDetails] = useState(customer.addressDetails || 'House 34, Flat 5A');
+  const [district, setDistrict] = useState(customer.district || '');
+  const [upazila, setUpazila] = useState(customer.upazila || '');
+  const [thana, setThana] = useState(customer.thana || '');
+  const [village, setVillage] = useState(customer.village || '');
+  const [addressDetails, setAddressDetails] = useState(customer.addressDetails || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const isDirty =
-    district !== (customer.district || 'Dhaka') ||
-    upazila !== (customer.upazila || 'Dhanmondi') ||
-    thana !== (customer.thana || 'Dhanmondi Thana') ||
-    village !== (customer.village || 'Road 8/A') ||
-    addressDetails !== (customer.addressDetails || 'House 34, Flat 5A');
+    district !== (customer.district || '') ||
+    upazila !== (customer.upazila || '') ||
+    thana !== (customer.thana || '') ||
+    village !== (customer.village || '') ||
+    addressDetails !== (customer.addressDetails || '');
 
   const handleClearAddress = () => {
-    setDistrict(customer.district || 'Dhaka');
-    setUpazila(customer.upazila || 'Dhanmondi');
-    setThana(customer.thana || 'Dhanmondi Thana');
-    setVillage(customer.village || 'Road 8/A');
-    setAddressDetails(customer.addressDetails || 'House 34, Flat 5A');
+    setDistrict(customer.district || '');
+    setUpazila(customer.upazila || '');
+    setThana(customer.thana || '');
+    setVillage(customer.village || '');
+    setAddressDetails(customer.addressDetails || '');
     setErrors({});
   };
 

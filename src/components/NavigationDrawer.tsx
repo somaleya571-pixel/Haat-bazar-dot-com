@@ -23,6 +23,7 @@ import {
   ExternalLink,
   Sun,
   Moon,
+  Sparkles,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { PageId } from '../types';
@@ -136,14 +137,6 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
       iconBg: 'bg-gradient-to-br from-sky-500 to-blue-600',
     },
     {
-      id: 'welcome-register',
-      titleBn: 'কাস্টমার প্রোফাইল নিবন্ধন (Sync)',
-      subtitleBn: 'ওয়েলকাম পেজ ও ফেসবুক প্রোফাইল সিঙ্ক',
-      titleEn: 'Customer Registration & Sync',
-      icon: <Sparkles className="w-4 h-4 text-white" />,
-      iconBg: 'bg-gradient-to-br from-[#007A3D] to-emerald-600',
-    },
-    {
       id: 'profile',
       titleBn: 'ব্যক্তিগত প্রোফাইল ও অ্যাকাউন্ট',
       titleEn: 'Customer Profile',
@@ -209,7 +202,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
         onClick={onClose}
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-sm w-full bg-white shadow-2xl flex flex-col z-50">
+      <div className="fixed inset-y-0 right-0 max-w-sm w-full bg-white dark:bg-[#141f17] shadow-2xl flex flex-col z-50">
         {/* Drawer Header: Brand Logo */}
         <div className="p-3.5 bg-gradient-to-r from-[#007A3D] to-[#005a2d] text-white flex items-center justify-between shadow-md">
           <BrandLogo variant="drawer" size="sm" onClick={() => { navigateTo('home'); onClose(); }} />
@@ -235,8 +228,8 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
                 }}
                 className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-emerald-50/90 text-[#007A3D] font-bold border-l-4 border-[#007A3D] shadow-2xs'
-                    : 'text-gray-700 hover:bg-gray-50/80 font-medium border border-transparent hover:border-gray-200'
+                    ? 'bg-emerald-50/90 dark:bg-emerald-950/40 text-[#007A3D] dark:text-emerald-400 font-bold border-l-4 border-[#007A3D] shadow-2xs'
+                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50/80 dark:hover:bg-gray-800/60 font-medium border border-transparent hover:border-gray-200 dark:hover:border-gray-700'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -245,10 +238,10 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
                     {page.icon}
                   </div>
                   <div className="min-w-0">
-                    <p className={`text-xs truncate ${isActive ? 'font-bold text-[#007A3D]' : 'font-semibold text-gray-800'}`}>
+                    <p className={`text-xs truncate ${isActive ? 'font-bold text-[#007A3D] dark:text-emerald-400' : 'font-semibold text-gray-800 dark:text-gray-100'}`}>
                       {language === 'bn' ? page.titleBn : page.titleEn}
                     </p>
-                    <p className="text-[10px] text-gray-500 truncate mt-0.5">
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
                       {language === 'bn' ? page.subtitleBn : page.titleEn}
                     </p>
                   </div>
@@ -264,8 +257,8 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
         </div>
 
         {/* Theme Settings: Bright Mode & Dark Mode */}
-        <div className="p-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700">
+        <div className="p-3 bg-gray-50 dark:bg-[#1a271e] border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-200">
             {theme === 'dark' ? (
               <Moon className="w-4 h-4 text-indigo-400" />
             ) : (
@@ -273,13 +266,13 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
             )}
             <span>{language === 'bn' ? 'থিম সেটিংস:' : 'Theme Mode:'}</span>
           </div>
-          <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5 shadow-2xs">
+          <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141f17] p-0.5 shadow-2xs">
             <button
               onClick={() => setTheme('light')}
               className={`px-2.5 py-1 text-xs font-bold rounded-md flex items-center gap-1 transition-all cursor-pointer ${
                 theme === 'light'
                   ? 'bg-[#007A3D] text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
               title="ব্রাইট মোড"
             >
@@ -290,8 +283,8 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
               onClick={() => setTheme('dark')}
               className={`px-2.5 py-1 text-xs font-bold rounded-md flex items-center gap-1 transition-all cursor-pointer ${
                 theme === 'dark'
-                  ? 'bg-gray-800 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-emerald-700 text-white shadow-xs'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
               title="ডার্ক মোড"
             >
@@ -302,7 +295,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
         </div>
 
         {/* Drawer Footer with Hotline */}
-        <div className="p-3 bg-white border-t border-gray-200">
+        <div className="p-3 bg-white dark:bg-[#141f17] border-t border-gray-200 dark:border-gray-800">
           <a
             href={`tel:${officialContact.hotline.replace(/\s+/g, '')}`}
             className="flex items-center justify-center gap-2 w-full py-2 bg-[#007A3D] hover:bg-[#006030] text-white rounded-lg text-xs font-bold transition-colors shadow-2xs"

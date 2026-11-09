@@ -586,15 +586,15 @@ export const INITIAL_ORDERS: Order[] = [
 ];
 
 export const INITIAL_CUSTOMER: CustomerInfo = {
-  name: 'Md. Sahabull Islam',
-  phone: '01712345678',
-  email: 'mdsahabullislam627@gmail.com',
-  district: 'Dhaka',
-  upazila: 'Dhanmondi',
-  thana: 'Dhanmondi Thana',
-  village: 'Road 8/A',
-  addressDetails: 'House 34, Flat 5A, Dhanmondi, Dhaka-1209',
-  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+  name: '',
+  phone: '',
+  email: '',
+  district: '',
+  upazila: '',
+  thana: '',
+  village: '',
+  addressDetails: '',
+  avatar: '',
 };
 
 export const INITIAL_REVIEWS: ProductReview[] = [
@@ -636,44 +636,7 @@ export const INITIAL_REVIEWS: ProductReview[] = [
   },
 ];
 
-export const INITIAL_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'notif-1',
-    type: 'order',
-    title: 'অর্ডার শিপমেন্ট সম্পন্ন হয়েছে (HB-2026-92841)',
-    message: 'আপনার অর্ডারটি কুরিয়ারে হস্তান্তর করা হয়েছে। শীঘ্রই আপনার ঠিকানায় পৌঁছে যাবে।',
-    timestamp: 'আজ সকাল ১০:৪৫',
-    isRead: false,
-    linkPage: 'order-tracking',
-  },
-  {
-    id: 'notif-2',
-    type: 'offer',
-    title: 'ফ্ল্যাশ সেল ডিসকাউন্ট শুরু হয়েছে!',
-    message: 'সুন্দরবনের খাঁটি মধু ও কাঠের ঘানির সরিষার তেলে উপভোগ করুন ১৫-২০% পর্যন্ত বিশেষ মূল্যছাড়।',
-    timestamp: 'গতকাল সন্ধ্যা ৬:০০',
-    isRead: false,
-    linkPage: 'home',
-  },
-  {
-    id: 'notif-3',
-    type: 'delivery',
-    title: '১০০০ টাকার উপরে অর্ডারে ফ্রি ডেলিভারি',
-    message: 'ঢাকা সিটির যেকোনো প্রান্তে ১০০০ টাকার পণ্যে কোনো ডেলিভারি চার্জ প্রযোজ্য নয়।',
-    timestamp: '২ দিন আগে',
-    isRead: true,
-    linkPage: 'categories',
-  },
-  {
-    id: 'notif-4',
-    type: 'announcement',
-    title: 'হাট বাজারে যুক্ত হলো নতুন ক্যাটাগরি',
-    message: 'এখন দেশীয় ঐতিহ্যবাহী হাতে তৈরি পণ্য ও মৃৎশিল্প সহজে ঘরে বসে অর্ডার করুন।',
-    timestamp: '৪ দিন আগে',
-    isRead: true,
-    linkPage: 'categories',
-  },
-];
+export const INITIAL_NOTIFICATIONS: AppNotification[] = [];
 
 export const INITIAL_RETURNS: ReturnRequest[] = [
   {

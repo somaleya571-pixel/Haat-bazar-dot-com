@@ -48,13 +48,13 @@ export const CheckoutPage: React.FC = () => {
   const [phone, setPhone] = useState(customer.phone || '');
   const [email, setEmail] = useState(customer.email || '');
 
-  // Address Fields (Prefilled & editable per Requirement G)
+  // Address Fields (Prefilled & editable per customer profile)
   const [division, setDivision] = useState(customer.division || '');
-  const [district, setDistrict] = useState(customer.district || 'Dhaka');
-  const [upazila, setUpazila] = useState(customer.upazila || 'Dhanmondi');
-  const [thana, setThana] = useState(customer.thana || 'Dhanmondi Thana');
-  const [village, setVillage] = useState(customer.village || 'Road 8/A');
-  const [addressDetails, setAddressDetails] = useState(customer.addressDetails || 'House 34, Flat 5A');
+  const [district, setDistrict] = useState(customer.district || '');
+  const [upazila, setUpazila] = useState(customer.upazila || '');
+  const [thana, setThana] = useState(customer.thana || '');
+  const [village, setVillage] = useState(customer.village || '');
+  const [addressDetails, setAddressDetails] = useState(customer.addressDetails || '');
   const [isManualAddress, setIsManualAddress] = useState(customer.isManualAddress || false);
   const [manualAddress, setManualAddress] = useState(customer.manualAddress || '');
 
@@ -67,11 +67,11 @@ export const CheckoutPage: React.FC = () => {
     if (customer.phone && !phone) setPhone(customer.phone);
     if (customer.email && !email) setEmail(customer.email);
     if (customer.division && !division) setDivision(customer.division);
-    if (customer.district && (!district || district === 'Dhaka')) setDistrict(customer.district);
-    if (customer.upazila && (!upazila || upazila === 'Dhanmondi')) setUpazila(customer.upazila);
-    if (customer.thana && (!thana || thana === 'Dhanmondi Thana')) setThana(customer.thana);
-    if (customer.village && (!village || village === 'Road 8/A')) setVillage(customer.village);
-    if (customer.addressDetails && (!addressDetails || addressDetails === 'House 34, Flat 5A')) setAddressDetails(customer.addressDetails);
+    if (customer.district && !district) setDistrict(customer.district);
+    if (customer.upazila && !upazila) setUpazila(customer.upazila);
+    if (customer.thana && !thana) setThana(customer.thana);
+    if (customer.village && !village) setVillage(customer.village);
+    if (customer.addressDetails && !addressDetails) setAddressDetails(customer.addressDetails);
     if (customer.isManualAddress !== undefined) setIsManualAddress(customer.isManualAddress);
     if (customer.manualAddress) setManualAddress(customer.manualAddress);
   }, [customer]);
@@ -270,6 +270,12 @@ export const CheckoutPage: React.FC = () => {
       assignedCourierId: selectedCourier.id,
       assignedCourierName: selectedCourier.name,
     });
+
+    showToast(
+      language === 'bn'
+        ? 'আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে এবং প্রোফাইল তথ্য অটোমেটিকলি আপডেট হয়েছে!'
+        : 'Order placed successfully and profile details updated automatically!'
+    );
 
     setTimeout(() => {
       setIsSubmitting(false);
